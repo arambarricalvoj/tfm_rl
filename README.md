@@ -1,43 +1,78 @@
-arrancar slam:
+Aunque falta documentar mejor y ordenar el repo, ejecutando estos pasos funciona :) !
 
-``ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=create3_ws/src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml ``
+## Construir la imagen de Docker o descargarla 
+Construir:
+```bash
+docker build -t tfm_rl:latest
+```
 
-teleop:
+Descargar:
+```bash
+docker pull arambarricalvoj/tfm_rl:latest
+```
 
-``ros2 run teleop_twist_keyboard teleop_twist_keyboard``
+## Ejecutar contenedor de Docker
+```bash
+sudo chmod u+x run.sh
+./run.sh
+```
 
-nav2:
+Para acceder al contenedor desde otras terminales:
+```bash
+docker exec -it tfm_rl bash
+```
 
-``ros2 launch nav2_bringup navigation_launch.py use_sim_time:=True``
+## SLAM (create3):
 
+```bash
+source /home/$USER/create3_ws/install/setup.bash
+```
 
-el primer comando del RL:
+```bash
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py
+```
 
-``ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model``
+```bash
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
+```
 
-Arranca, pero con errores de audio (despreciable)
-apt-get update && apt-get install -y alsa-utils
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
 
-Hay que decidir si con conda o el interprete del sistema, por eso he tenido que modificar cuidadosamente el path en el Dockerfile
+```bash
+ros2 launch nav2_bringup navigation_launch.py use_sim_time:=True
+```
 
-segundo comando de RL:
+```bash
+ros2 run gazebo_ros spawn_entity.py -entity caja1 -database cardboard_box -x 3 -y 3 -z 0.5
+```
 
-``ros2 run turtlebot3_drl environment``
+Ejecutar en RViz2 con 2D Goal pose... 
 
-``export PATH=/opt/conda/envs/turtle3-drlnav/bin:$PATH``
+## DRL-NAV (turtlebot3)
+```bash
+source /home/$USER/turtlebot3_drlnav_ws/install/setup.bash
+source /home/$USER/turtlebot3_drlnav_ws/setup_drlnav.sh 
+```
 
-pip install empy==3.3.4
-pip install catkin_pkg
-pip install lark-parser
+```bash
+touch /tmp/drlnav_current_stage.txt
+echo 9 > /tmp/drlnav_current_stage.txt
+```
 
+```bash
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model
+```
 
-export PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin
+```bash
+ros2 run turtlebot3_drl environment
+```
 
+```bash
+ros2 run turtlebot3_drl train_agent ddpg
+```
 
-tercer comando:
-
-``ros2 run turtlebot3_drl train_agent ddpg``
-
-cuarto comando:
-
-``ros2 run turtlebot3_drl gazebo_goals``
+```bash
+ros2 run turtlebot3_drl gazebo_goals
+```

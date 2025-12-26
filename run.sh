@@ -6,15 +6,10 @@ docker run -e DISPLAY=$DISPLAY \
            -e NVIDIA_DRIVER_CAPABILITIES=all \
            -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
            -v ./create3_sim_JavAram/create3_ws/:/home/$USER/create3_ws/ \
-           -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_JavAram_ws/ \
+           -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_ws/ \
            -it \
            --rm \
            --gpus all \
            --runtime=nvidia \
-           --name tfm \
-           turtlebot3_drlnav
-
-# --device /dev/dri:/dev/dri \
-
-
-# --privileged  
+           --name tfm_rl \
+           tfm_rl:latest

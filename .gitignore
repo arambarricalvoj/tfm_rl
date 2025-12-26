@@ -1,8 +1,8 @@
-create3_sim_JavAram/build/*
-create3_sim_JavAram/install/*
-create3_sim_JavAram/log/*
-turtlebot3_drlnav/build/*
-turtlebot3_drlnav/install/*
-turtlebot3_drlnav/log/*
+create3_sim_JavAram/create3_ws/build/*
+create3_sim_JavAram/create3_ws/install/*
+create3_sim_JavAram/create3_ws/log/*
+turtlebot3_drlnav_JavAram/build/*
+turtlebot3_drlnav_JavAram/install/*
+turtlebot3_drlnav_JavAram/log/*
 
 

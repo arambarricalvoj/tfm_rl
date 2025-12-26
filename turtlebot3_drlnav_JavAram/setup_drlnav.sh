@@ -3,7 +3,8 @@
 export ROS_DOMAIN_ID=1
 
 # Fill in the path to where you cloned the turtlebot3_drlnav repo
-WORKSPACE_DIR="$HOME/rl-ws/turtlebot3_drlnav"
+#WORKSPACE_DIR="$HOME/rl-ws/turtlebot3_drlnav"
+WORKSPACE_DIR="/home/$USER/turtlebot3_drlnav_ws"
 export DRLNAV_BASE_PATH="$WORKSPACE_DIR"
 
 # Source the workspace

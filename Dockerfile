@@ -7,9 +7,11 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     gnupg \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Instalar Gazebo Classic y ROS2 plugins ---
+# --- Instalar Gazebo Classic y plugins ROS2 ---
 RUN apt-get update && apt-get install -y \
     ros-humble-turtlebot3 \
     ros-humble-gazebo-ros-pkgs \
@@ -28,62 +30,30 @@ RUN apt-get update && apt-get install -y \
     ros-humble-slam-toolbox \
     ros-humble-navigation2 \
     ros-humble-nav2-bringup \
-    python3 \
-    python3-pip \
-    python3-lxml \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install lxml numpy
-
-    # --- Modelos de Gazebo ---
+# --- Modelos de Gazebo ---
 RUN git clone https://github.com/osrf/gazebo_models.git /usr/share/gazebo/models
 
-# --- Instalar pipreqs y dependencias Python repo create3 ---
-RUN pip install --no-cache-dir \
-    setuptools==59.6.0 \
-    pipreqs
+# --- Dependencias Python del sistema ---
+RUN pip3 install --no-cache-dir \
+    "numpy<2" \
+    pandas \
+    pyqtgraph==0.12.4 \
+    PyQt5==5.14.1 \
+    lxml \
+    pipreqs \
+    setuptools==59.6.0
 
-# --- CUDA runtime 11.3 (para PyTorch 1.10.0+cu113) ---
-# Aunque el host tenga CUDA 12.x, PyTorch trae sus propias librerías cu113.
-# Solo necesitamos un driver moderno en el host.
-ENV PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin:/opt/ros/humble/bin:/usr/local/cuda-11.3/bin:/opt/conda/bin:/opt/conda/condabin
-ENV PATH=/usr/local/cuda-11.3/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda-11.3/lib64
+# --- PyTorch con CUDA 11.3 ---
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu113
 
-# --- Instalar Miniconda ---
-ENV CONDA_DIR=/opt/conda
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p $CONDA_DIR && \
-    rm /tmp/miniconda.sh && \
-    $CONDA_DIR/bin/conda clean -afy
-
-# Añadir conda al PATH
-ENV PATH=$CONDA_DIR/bin:$PATH
-
-# --- Copiar el environment.yml ---
-COPY environment.yml /tmp/environment.yml
-
-# --- Crear entorno conda turtle3-drlnav ---
-RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-
-RUN conda env create -f /tmp/environment.yml && conda clean -afy
-
-# Activar entorno por defecto en bash
-RUN echo "source activate turtle3-drlnav" >> ~/.bashrc
-#RUN echo "source /home/$USER/turtlebot3_ws/setup_drlnav.sh" >> ~/.bashrc
-#RUN echo "source /home/$USER/create3_ws/install/setup.bash" >> ~/.bashrc
-RUN echo "export PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin:/opt/ros/humble/bin:/usr/local/cuda-11.3/bin:/opt/conda/bin:/opt/conda/condabin" >> ~/.bashrc
-
-#ENV PATH=/opt/conda/envs/turtle3-drlnav/bin:${PATH}
-
+# --- Variables de entorno ROS/Gazebo ---
+ENV GAZEBO_MODEL_PATH=/usr/share/gazebo/models
 
 # --- Copiar scripts de ROS ---
 COPY ./ros_entrypoint.sh /ros_entrypoint.sh
 RUN chmod +x /ros_entrypoint.sh
-
-# --- Variables de entorno ROS/Gazebo ---
-ENV GAZEBO_MODEL_PATH=/usr/share/gazebo/models
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["/bin/bash"]
