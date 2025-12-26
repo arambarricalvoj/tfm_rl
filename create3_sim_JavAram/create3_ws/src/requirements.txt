@@ -1,0 +1,7 @@
+ament_index_python==1.4.0
+controller_manager_msgs==2.52.0
+geometry_msgs==4.9.0
+launch_ros==0.19.12
+nav_msgs==4.9.0
+rclpy==3.3.17
+rosgraph_msgs==1.2.2

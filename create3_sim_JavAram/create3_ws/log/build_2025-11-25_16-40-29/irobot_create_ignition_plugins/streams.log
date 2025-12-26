@@ -1,0 +1,61 @@
+[0.015s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/javierac/create3_ws/src/irobot_create_ignition/irobot_create_ignition_plugins -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/javierac/create3_ws/install/irobot_create_ignition_plugins
+[0.071s] -- The C compiler identification is GNU 11.4.0
+[0.133s] -- The CXX compiler identification is GNU 11.4.0
+[0.144s] -- Detecting C compiler ABI info
+[0.218s] -- Detecting C compiler ABI info - done
+[0.229s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.229s] -- Detecting C compile features
+[0.229s] -- Detecting C compile features - done
+[0.232s] -- Detecting CXX compiler ABI info
+[0.318s] -- Detecting CXX compiler ABI info - done
+[0.325s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.326s] -- Detecting CXX compile features
+[0.326s] -- Detecting CXX compile features - done
+[0.328s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.486s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.557s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.949s] -- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found version "3.12.4") 
+[1.073s] -- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found suitable version "3.12.4", minimum required is "3") 
+[1.825s] -- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found version "3.12.4") 
+[1.919s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[1.997s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[1.997s] -- Configured cppcheck include dirs: 
+[1.997s] -- Configured cppcheck exclude dirs and/or files: 
+[1.998s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[1.998s] -- Configured cpplint exclude dirs and/or files: 
+[1.998s] -- Added test 'lint_cmake' to check CMake code style
+[1.999s] -- Added test 'xmllint' to check XML markup files
+[2.000s] -- Configuring done
+[2.018s] -- Generating done
+[2.021s] -- Build files have been written to: /home/javierac/create3_ws/build/irobot_create_ignition_plugins
+[2.033s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/javierac/create3_ws/src/irobot_create_ignition/irobot_create_ignition_plugins -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/javierac/create3_ws/install/irobot_create_ignition_plugins
+[2.034s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/javierac/create3_ws/build/irobot_create_ignition_plugins -- -j20 -l20
+[2.088s] [ 16%] [34m[1mAutomatic MOC for target Create3Hmi[0m
+[3.028s] [ 16%] Built target Create3Hmi_autogen
+[3.040s] [ 33%] [34m[1mGenerating qrc_Create3Hmi.cpp[0m
+[3.066s] [ 50%] [32mBuilding CXX object Create3Hmi/CMakeFiles/Create3Hmi.dir/Create3Hmi_autogen/mocs_compilation.cpp.o[0m
+[3.067s] [ 66%] [32mBuilding CXX object Create3Hmi/CMakeFiles/Create3Hmi.dir/qrc_Create3Hmi.cpp.o[0m
+[3.070s] [ 83%] [32mBuilding CXX object Create3Hmi/CMakeFiles/Create3Hmi.dir/Create3Hmi.cc.o[0m
+[18.226s] [100%] [32m[1mLinking CXX shared library libCreate3Hmi.so[0m
+[18.913s] [100%] Built target Create3Hmi
+[18.941s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/javierac/create3_ws/build/irobot_create_ignition_plugins -- -j20 -l20
+[18.945s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/javierac/create3_ws/build/irobot_create_ignition_plugins
+[18.964s] -- Install configuration: ""
+[18.964s] -- Execute custom install script
+[18.969s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/lib/libCreate3Hmi.so
+[18.992s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/ament_index/resource_index/package_run_dependencies/irobot_create_ignition_plugins
+[19.015s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/ament_index/resource_index/parent_prefix_path/irobot_create_ignition_plugins
+[19.039s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/environment/ament_prefix_path.sh
+[19.062s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/environment/ament_prefix_path.dsv
+[19.084s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/environment/path.sh
+[19.098s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/environment/path.dsv
+[19.107s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/local_setup.bash
+[19.125s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/local_setup.sh
+[19.134s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/local_setup.zsh
+[19.146s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/local_setup.dsv
+[19.158s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/package.dsv
+[19.170s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/ament_index/resource_index/packages/irobot_create_ignition_plugins
+[19.183s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/cmake/irobot_create_ignition_pluginsConfig.cmake
+[19.194s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/cmake/irobot_create_ignition_pluginsConfig-version.cmake
+[19.207s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_ignition_plugins/share/irobot_create_ignition_plugins/package.xml
+[19.228s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_ignition_plugins' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/javierac/create3_ws/build/irobot_create_ignition_plugins

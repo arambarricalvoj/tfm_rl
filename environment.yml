@@ -1,0 +1,16 @@
+name: turtle3-drlnav
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+      - pandas
+      - pyqtgraph==0.12.4
+      - PyQt5==5.14.1
+      - torch
+      - torchvision
+      - torchaudio
+      - lxml

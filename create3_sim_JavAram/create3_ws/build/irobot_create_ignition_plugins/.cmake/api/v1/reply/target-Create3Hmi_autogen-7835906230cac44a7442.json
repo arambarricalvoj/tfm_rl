@@ -1,0 +1,58 @@
+{
+	"backtrace" : 0,
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : 
+		[
+			"Create3Hmi/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			}
+		]
+	},
+	"id" : "Create3Hmi_autogen::@4212e76012398fe7fdd8",
+	"isGeneratorProvided" : true,
+	"name" : "Create3Hmi_autogen",
+	"paths" : 
+	{
+		"build" : "Create3Hmi",
+		"source" : "Create3Hmi"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "/home/javierac/create3_ws/build/irobot_create_ignition_plugins/Create3Hmi/CMakeFiles/Create3Hmi_autogen",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "/home/javierac/create3_ws/build/irobot_create_ignition_plugins/Create3Hmi/CMakeFiles/Create3Hmi_autogen.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

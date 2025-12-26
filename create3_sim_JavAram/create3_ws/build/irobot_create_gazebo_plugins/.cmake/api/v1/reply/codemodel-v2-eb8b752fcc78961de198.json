@@ -1,0 +1,160 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-c63a2150b5a08a386342.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.2"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "irobot_create_gazebo_plugins",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "docking_manager::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-docking_manager-9bf783fc25a090c844f6.json",
+					"name" : "docking_manager",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_bumper::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_bumper-8886df7b5bae76c26757.json",
+					"name" : "gazebo_ros_create_bumper",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_cliff_sensor::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_cliff_sensor-0efee8d10454eac0858d.json",
+					"name" : "gazebo_ros_create_cliff_sensor",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_docking_status::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_docking_status-b2ba6d0215af69fc0614.json",
+					"name" : "gazebo_ros_create_docking_status",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_helpers::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_helpers-8fb0274f6c3394e2fd0f.json",
+					"name" : "gazebo_ros_create_helpers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_imu::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_imu-a8164178bdd4cca62827.json",
+					"name" : "gazebo_ros_create_imu",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_ir_intensity_sensor::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_ir_intensity_sensor-f0cc94398c94d7d9ebfc.json",
+					"name" : "gazebo_ros_create_ir_intensity_sensor",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_ir_opcode::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_ir_opcode-e7f54dc08753b3b52fd3.json",
+					"name" : "gazebo_ros_create_ir_opcode",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_optical_mouse::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_optical_mouse-02ad0492e64140a34f69.json",
+					"name" : "gazebo_ros_create_optical_mouse",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gazebo_ros_create_wheel_drop::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gazebo_ros_create_wheel_drop-8fbe91d79708b7f7fca3.json",
+					"name" : "gazebo_ros_create_wheel_drop",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "irobot_create_gazebo_plugins_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-irobot_create_gazebo_plugins_uninstall-3e84f3054b2f85e0f901.json",
+					"name" : "irobot_create_gazebo_plugins_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-c076c942f4eca2c2f88d.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/javierac/create3_ws/build/irobot_create_gazebo_plugins",
+		"source" : "/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_plugins"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

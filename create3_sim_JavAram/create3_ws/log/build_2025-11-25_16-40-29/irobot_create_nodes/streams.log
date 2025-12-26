@@ -1,0 +1,176 @@
+[0.017s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_nodes': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake /home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/javierac/create3_ws/install/irobot_create_nodes
+[0.080s] -- The C compiler identification is GNU 11.4.0
+[0.137s] -- The CXX compiler identification is GNU 11.4.0
+[0.145s] -- Detecting C compiler ABI info
+[0.232s] -- Detecting C compiler ABI info - done
+[0.240s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.240s] -- Detecting C compile features
+[0.241s] -- Detecting C compile features - done
+[0.246s] -- Detecting CXX compiler ABI info
+[0.342s] -- Detecting CXX compiler ABI info - done
+[0.353s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.353s] -- Detecting CXX compile features
+[0.353s] -- Detecting CXX compile features - done
+[0.356s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.526s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.602s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.639s] -- Found angles: 1.15.0 (/opt/ros/humble/share/angles/cmake)
+[0.641s] -- Found control_msgs: 4.8.0 (/opt/ros/humble/share/control_msgs/cmake)
+[0.683s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.688s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.697s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.710s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.727s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.855s] -- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+[0.872s] -- Found irobot_create_msgs: 2.1.0 (/opt/ros/humble/share/irobot_create_msgs/cmake)
+[0.891s] -- Found irobot_create_toolbox: 2.1.0 (/home/javierac/create3_ws/install/irobot_create_toolbox/share/irobot_create_toolbox/cmake)
+[0.946s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.949s] -- Found rmw_fastrtps_cpp: 6.2.9 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[1.058s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[1.107s] -- Found FastRTPS: /opt/ros/humble/include  
+[1.169s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[1.179s] -- Looking for pthread.h
+[1.267s] -- Looking for pthread.h - found
+[1.267s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[1.350s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[1.351s] -- Found Threads: TRUE  
+[1.392s] -- Found rclcpp_action: 16.0.15 (/opt/ros/humble/share/rclcpp_action/cmake)
+[1.404s] -- Found rclcpp_components: 16.0.15 (/opt/ros/humble/share/rclcpp_components/cmake)
+[1.435s] -- Found tf2: 0.25.16 (/opt/ros/humble/share/tf2/cmake)
+[1.440s] -- Found tf2_geometry_msgs: 0.25.16 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+[1.457s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+[1.458s] -- Found Eigen3: TRUE (found version "3.4.0") 
+[1.458s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[1.502s] -- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0")  
+[1.553s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[1.636s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[1.637s] -- Configured cppcheck include dirs: /home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/include
+[1.638s] -- Configured cppcheck exclude dirs and/or files: 
+[1.640s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[1.640s] -- Configured cpplint exclude dirs and/or files: 
+[1.640s] -- Added test 'lint_cmake' to check CMake code style
+[1.643s] -- Added test 'uncrustify' to check C / C++ code style
+[1.643s] -- Configured uncrustify additional arguments: 
+[1.644s] -- Added test 'xmllint' to check XML markup files
+[1.645s] -- Configuring done
+[1.757s] -- Generating done
+[1.789s] -- Build files have been written to: /home/javierac/create3_ws/build/irobot_create_nodes
+[1.801s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_nodes' returned '0': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake /home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/javierac/create3_ws/install/irobot_create_nodes
+[1.802s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_nodes': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --build /home/javierac/create3_ws/build/irobot_create_nodes -- -j20 -l20
+[1.864s] [  2%] [32mBuilding CXX object CMakeFiles/hazards_vector_publisher.dir/rclcpp_components/node_main_hazards_vector_publisher.cpp.o[0m
+[1.865s] [  5%] [32mBuilding CXX object CMakeFiles/hazard_publisher_lib.dir/src/hazards_vector_publisher.cpp.o[0m
+[1.868s] [  8%] [32mBuilding CXX object CMakeFiles/ir_intensity_vector_publisher.dir/rclcpp_components/node_main_ir_intensity_vector_publisher.cpp.o[0m
+[1.874s] [ 13%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control/docking_behavior.cpp.o[0m
+[1.874s] [ 13%] [32mBuilding CXX object CMakeFiles/wheel_status_publisher.dir/rclcpp_components/node_main_wheel_status_publisher.cpp.o[0m
+[1.874s] [ 16%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control/drive_goal_behaviors.cpp.o[0m
+[1.878s] [ 18%] [32mBuilding CXX object CMakeFiles/motion_control.dir/rclcpp_components/node_main_motion_control.cpp.o[0m
+[1.879s] [ 21%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control_node.cpp.o[0m
+[1.882s] [ 24%] [32mBuilding CXX object CMakeFiles/robot_state.dir/rclcpp_components/node_main_robot_state.cpp.o[0m
+[1.883s] [ 27%] [32mBuilding CXX object CMakeFiles/robot_state_lib.dir/src/robot_state.cpp.o[0m
+[1.885s] [ 29%] [32mBuilding CXX object CMakeFiles/ir_intensity_publisher_lib.dir/src/ir_intensity_vector_publisher.cpp.o[0m
+[1.888s] [ 37%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control/wall_follow_behavior.cpp.o[0m
+[1.888s] [ 37%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control/wall_follow_states.cpp.o[0m
+[1.890s] [ 40%] [32mBuilding CXX object CMakeFiles/motion_control_lib.dir/src/motion_control/reflex_behavior.cpp.o[0m
+[1.891s] [ 40%] [32mBuilding CXX object CMakeFiles/mock_publisher.dir/rclcpp_components/node_main_mock_publisher.cpp.o[0m
+[1.892s] [ 43%] [32mBuilding CXX object CMakeFiles/kidnap_estimator_publisher_lib.dir/src/kidnap_estimator_publisher.cpp.o[0m
+[1.897s] [ 45%] [32mBuilding CXX object CMakeFiles/wheel_status_publisher_lib.dir/src/wheels_publisher.cpp.o[0m
+[1.906s] [ 48%] [32mBuilding CXX object CMakeFiles/mock_publisher_lib.dir/src/mock_publisher.cpp.o[0m
+[1.907s] [ 51%] [32mBuilding CXX object CMakeFiles/ui_mgr_lib.dir/src/ui_mgr.cpp.o[0m
+[1.912s] [ 54%] [32mBuilding CXX object CMakeFiles/ui_mgr.dir/rclcpp_components/node_main_ui_mgr.cpp.o[0m
+[8.071s] [ 56%] [32m[1mLinking CXX executable mock_publisher[0m
+[8.230s] [ 59%] [32m[1mLinking CXX executable wheel_status_publisher[0m
+[8.257s] [ 62%] [32m[1mLinking CXX executable ir_intensity_vector_publisher[0m
+[8.368s] [ 62%] Built target mock_publisher
+[8.430s] [ 64%] [32mBuilding CXX object CMakeFiles/kidnap_estimator_publisher.dir/rclcpp_components/node_main_kidnap_estimator_publisher.cpp.o[0m
+[8.497s] [ 64%] Built target wheel_status_publisher
+[8.509s] [ 64%] Built target ir_intensity_vector_publisher
+[8.510s] [ 67%] [32m[1mLinking CXX executable ui_mgr[0m
+[8.690s] [ 70%] [32m[1mLinking CXX executable motion_control[0m
+[8.899s] [ 70%] Built target ui_mgr
+[8.973s] [ 70%] Built target motion_control
+[9.926s] [ 72%] [32m[1mLinking CXX executable hazards_vector_publisher[0m
+[10.311s] [ 72%] Built target hazards_vector_publisher
+[10.489s] [ 75%] [32m[1mLinking CXX executable robot_state[0m
+[10.841s] [ 75%] Built target robot_state
+[13.248s] [ 78%] [32m[1mLinking CXX shared library libmock_publisher_lib.so[0m
+[13.980s] [ 78%] Built target mock_publisher_lib
+[14.509s] [01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:[m[K In member function ‘[01m[Kvoid irobot_create_nodes::MotionControlNode::reset_pose_request(irobot_create_msgs::srv::ResetPose_Request_<std::allocator<void> >::SharedPtr, irobot_create_msgs::srv::ResetPose_Response_<std::allocator<void> >::SharedPtr)[m[K’:
+[14.509s] [01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:442:64:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Krequest[m[K’ [[01;35m[K-Wunused-parameter[m[K]
+[14.509s]   442 |   [01;35m[Kconst irobot_create_msgs::srv::ResetPose::Request::SharedPtr request[m[K,
+[14.509s]       |   [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~[m[K
+[14.509s] [01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:443:59:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kresponse[m[K’ [[01;35m[K-Wunused-parameter[m[K]
+[14.510s]   443 |   [01;35m[Kirobot_create_msgs::srv::ResetPose::Response::SharedPtr response[m[K){
+[14.510s]       |   [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~[m[K
+[15.443s] [ 81%] [32m[1mLinking CXX executable kidnap_estimator_publisher[0m
+[15.763s] [ 81%] Built target kidnap_estimator_publisher
+[19.892s] [ 83%] [32m[1mLinking CXX shared library libhazard_publisher_lib.so[0m
+[20.044s] [ 86%] [32m[1mLinking CXX shared library libkidnap_estimator_publisher_lib.so[0m
+[20.448s] [ 89%] [32m[1mLinking CXX shared library libir_intensity_publisher_lib.so[0m
+[21.077s] [ 89%] Built target kidnap_estimator_publisher_lib
+[21.218s] [ 91%] [32m[1mLinking CXX shared library libwheel_status_publisher_lib.so[0m
+[21.312s] [ 91%] Built target hazard_publisher_lib
+[21.332s] [ 91%] Built target ir_intensity_publisher_lib
+[21.940s] [ 91%] Built target wheel_status_publisher_lib
+[25.385s] [ 94%] [32m[1mLinking CXX shared library librobot_state_lib.so[0m
+[26.154s] [ 94%] Built target robot_state_lib
+[26.218s] [ 97%] [32m[1mLinking CXX shared library libui_mgr_lib.so[0m
+[27.084s] [ 97%] Built target ui_mgr_lib
+[41.389s] [100%] [32m[1mLinking CXX shared library libmotion_control_lib.so[0m
+[44.170s] [100%] Built target motion_control_lib
+[44.182s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_nodes' returned '0': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --build /home/javierac/create3_ws/build/irobot_create_nodes -- -j20 -l20
+[44.183s] Invoking command in '/home/javierac/create3_ws/build/irobot_create_nodes': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --install /home/javierac/create3_ws/build/irobot_create_nodes
+[44.190s] -- Install configuration: ""
+[44.191s] -- Execute custom install script
+[44.191s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/hazards_vector_publisher
+[44.200s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/ir_intensity_vector_publisher
+[44.210s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/motion_control
+[44.218s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/wheel_status_publisher
+[44.226s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/robot_state
+[44.236s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/ui_mgr
+[44.245s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/mock_publisher
+[44.254s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/kidnap_estimator_publisher
+[44.264s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libhazard_publisher_lib.so
+[44.271s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libir_intensity_publisher_lib.so
+[44.282s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libmotion_control_lib.so
+[44.291s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libwheel_status_publisher_lib.so
+[44.302s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/librobot_state_lib.so
+[44.310s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libui_mgr_lib.so
+[44.320s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libmock_publisher_lib.so
+[44.332s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/lib/libkidnap_estimator_publisher_lib.so
+[44.344s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/hazards_vector_publisher.hpp
+[44.352s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/ir_intensity_vector_publisher.hpp
+[44.363s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/kidnap_estimator_publisher.hpp
+[44.372s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/mock_publisher.hpp
+[44.379s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/behaviors_scheduler.hpp
+[44.387s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/docking_behavior.hpp
+[44.399s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/drive_goal_behaviors.hpp
+[44.407s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/reflex_behavior.hpp
+[44.418s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/simple_goal_controller.hpp
+[44.428s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/wall_follow_behavior.hpp
+[44.439s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control/wall_follow_states.hpp
+[44.446s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/motion_control_node.hpp
+[44.455s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/robot_state.hpp
+[44.462s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/ui_mgr.hpp
+[44.470s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/include/irobot_create_nodes/wheels_publisher.hpp
+[44.477s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/library_path.sh
+[44.485s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/library_path.dsv
+[44.493s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/ament_index/resource_index/package_run_dependencies/irobot_create_nodes
+[44.505s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/ament_index/resource_index/parent_prefix_path/irobot_create_nodes
+[44.513s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/ament_prefix_path.sh
+[44.524s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/ament_prefix_path.dsv
+[44.532s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/path.sh
+[44.540s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/environment/path.dsv
+[44.547s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/local_setup.bash
+[44.555s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/local_setup.sh
+[44.566s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/local_setup.zsh
+[44.573s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/local_setup.dsv
+[44.580s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/package.dsv
+[44.589s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/ament_index/resource_index/packages/irobot_create_nodes
+[44.596s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/ament_index/resource_index/rclcpp_components/irobot_create_nodes
+[44.603s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/cmake/ament_cmake_export_include_directories-extras.cmake
+[44.614s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/cmake/ament_cmake_export_libraries-extras.cmake
+[44.623s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/cmake/ament_cmake_export_dependencies-extras.cmake
+[44.633s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/cmake/irobot_create_nodesConfig.cmake
+[44.641s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/cmake/irobot_create_nodesConfig-version.cmake
+[44.649s] -- Symlinking: /home/javierac/create3_ws/install/irobot_create_nodes/share/irobot_create_nodes/package.xml
+[44.659s] Invoked command in '/home/javierac/create3_ws/build/irobot_create_nodes' returned '0': AMENT_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox:/opt/ros/humble LD_LIBRARY_PATH=/home/javierac/create3_ws/install/irobot_create_toolbox/lib:${LD_LIBRARY_PATH} /usr/bin/cmake --install /home/javierac/create3_ws/build/irobot_create_nodes

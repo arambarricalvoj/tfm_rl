@@ -1,0 +1,8 @@
+setup.py
+irobot_create_common_bringup/__init__.py
+irobot_create_common_bringup/namespace.py
+irobot_create_common_bringup/offset.py
+irobot_create_common_bringup.egg-info/PKG-INFO
+irobot_create_common_bringup.egg-info/SOURCES.txt
+irobot_create_common_bringup.egg-info/dependency_links.txt
+irobot_create_common_bringup.egg-info/top_level.txt
