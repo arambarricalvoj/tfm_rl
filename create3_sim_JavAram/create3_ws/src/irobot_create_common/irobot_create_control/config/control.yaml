@@ -1,43 +1,56 @@
 /**:  
   controller_manager:
     ros__parameters:
-      update_rate: 1000  # Hz
+      update_rate: 1000  # Hz -> normalmente 50-400. 1000 es muy alto -> simulación
 
       joint_state_broadcaster:
-        type: joint_state_broadcaster/JointStateBroadcaster
+        type: joint_state_broadcaster/JointStateBroadcaster # publica posiciones/velocidades de las articulaciones.
 
       diffdrive_controller:
-        type: diff_drive_controller/DiffDriveController
+        type: diff_drive_controller/DiffDriveController # controlador de cinemática diferencial.
 
   diffdrive_controller:
     ros__parameters:
-      use_sim_time: true
-      left_wheel_names: ["left_wheel_joint"]
-      right_wheel_names: ["right_wheel_joint"]
+      use_sim_time: true # usar el reloj de simulación
+      left_wheel_names: ["left_wheel_joint"] # nombre de la articulación de la rueda izquierda
+      right_wheel_names: ["right_wheel_joint"] # nombre de la articulación de la rueda derecha
 
-      wheel_separation: 0.233
-      wheel_radius: 0.03575
+      wheel_separation: 0.233 # axle track (distancia entre ruedas) en metros (m)
+      wheel_radius: 0.03575 # radio de las ruedas en metros (m)
 
       # Multiplier applied to the wheel separation parameter.
       # This is used to account for a difference between the robot model and a real robot.
-      wheel_separation_multiplier: 1.0
+      wheel_separation_multiplier: 1.0 # Si el robot real gira más de lo esperado; wheel_separation_multiplier: 1.05
 
       # Multipliers applied to the wheel radius parameter.
       # This is used to account for a difference between the robot model and a real robot.
-      left_wheel_radius_multiplier: 1.0
-      right_wheel_radius_multiplier: 1.0
+      left_wheel_radius_multiplier: 1.0 # Si el robot real avanza menos de lo esperado, por ejemplo: 1.02
+      right_wheel_radius_multiplier: 1.0 # Si el robot real avanza menos de lo esperado, por ejemplo: 1.02
 
-      publish_rate: 62.0
-      odom_frame_id: odom
+      publish_rate: 62.0 # frecuencia de publicación de odometría en Hz
+      odom_frame_id: odom # frames TF usados para la odometría. Odom lo publica el controller o un node de odometría. Represente el origen del sistema de odometría.
       base_frame_id: base_link
-      pose_covariance_diagonal : [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
-      twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
 
-      open_loop: false
-      enable_odom_tf: true
+      # Covarianza de la pose estimada (x, y, z, roll, pitch, yaw).
+      # Indica cuánta incertidumbre tiene la odometría en cada eje.
+      # Valores pequeños = alta confianza; valores grandes = baja confianza.
+      # SLAM y Nav2 usan estos valores para decidir cuánto fiarse de la odometría
+      # frente a otros sensores (IMU, LIDAR, etc.).
+      # sqrt(0.001) = +-0.0316 cm de incertidumbre en una posición.
+      pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01] # muy poca incertidumbre
 
-      cmd_vel_timeout: 0.5
-      use_stamped_vel: false
+      # Covarianza de la velocidad estimada (vx, vy, vz, vroll, vpitch, vyaw).
+      # Expresa la incertidumbre en las velocidades calculadas por el controlador.
+      # SLAM y Nav2 ajustan la fusión de sensores según esta fiabilidad:
+      # menor covarianza → más peso a la odometría; mayor covarianza -> menos peso.
+      twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01] # muy poca incertidumbre
+
+
+      open_loop: false # Odometría se calcular desde encoders, no desde comandas
+      enable_odom_tf: true # Publicar la transformación
+
+      cmd_vel_timeout: 0.5 # Tiempo máximo en segundos (s) sin recibir cmd_vel antes de parar el robot
+      use_stamped_vel: false # Si True espera geometry_msgs/TwistStamped
 
       # Preserve turning radius when limiting speed/acceleration/jerk
       preserve_turning_radius: true
