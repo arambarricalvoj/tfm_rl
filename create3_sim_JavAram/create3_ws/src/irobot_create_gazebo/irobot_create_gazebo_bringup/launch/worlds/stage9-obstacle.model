@@ -2,18 +2,24 @@
 <sdf version="1.6">
   <world name="default">
 
+    <!-- suelo plano estándar de Gazebo -->
     <include>
       <uri>model://ground_plane</uri>
     </include>
 
+    <!-- luz principal del mundo -->
     <include>
       <uri>model://sun</uri>
     </include>
 
+    <!-- desactivar sombras para mejorar el rendimiento (en este proyecto las sombras no aportan nada) -->
     <scene>
       <shadows>false</shadows>
     </scene>
 
+    <!-- cámara principal que se ve al abrir Gazebo -->
+    <!-- orbit: cámara que gira alrededor del punto de interés ?? --> 
+    <!-- pose: posición y orientación de la cámara -->
     <gui fullscreen='0'>
       <camera name='user_camera'>
         <pose frame=''>0.319654 -0.235002 9.29441 0 1.5138 0.009599</pose>
@@ -22,19 +28,23 @@
       </camera>
     </gui>
 
+  <!-- física del mundo -->
     <physics type="ode">
-      <real_time_update_rate>1000.0</real_time_update_rate>
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-      <ode>
+
+    <!-- parámetros típicos para RL, requieren alta precisión física, simulación estable y tiempo de integración pequeños -->
+      <real_time_update_rate>1000.0</real_time_update_rate> <!-- Hz. 1000 pasos por segundo -->
+      <max_step_size>0.001</max_step_size> <!-- cada paso de simulación dura 0.001 s (1 ms) -->
+      <real_time_factor>1</real_time_factor> <!-- simulación intenta correr en tiempo real ?? --> 
+
+      <ode> <!-- parámetros del motor físico -->
         <solver>
-          <type>quick</type>
-          <iters>150</iters>
-          <precon_iters>0</precon_iters>
-          <sor>1.400000</sor>
+          <type>quick</type> <!-- solver rápido de ODE -->
+          <iters>150</iters> <!-- más iteraciones más precisión en contactos -->
+          <precon_iters>0</precon_iters> ??
+          <sor>1.400000</sor> <!-- parámetro de relajación de convergencia ?? -->
           <use_dynamic_moi_rescaling>1</use_dynamic_moi_rescaling>
         </solver>
-        <constraints>
+        <constraints> <!-- rigidez de uniones y contactos ?? -->
           <cfm>0.00001</cfm>
           <erp>0.2</erp>
           <contact_max_correcting_vel>2000.000000</contact_max_correcting_vel>
@@ -53,6 +63,7 @@
       <uri>model://turtlebot3_drl_world/inner_walls_large</uri>
     </include>
 
+  <!-- obstáculos dinámicos con plugins -->
     <model name="turtlebot3_drl_obstacle1">
       <plugin name="obstaclelarge1" filename="libobstacle7.so"/>
       <include>

@@ -1,0 +1,5 @@
+Problema con las rutas ``model://turtlebot3_drl_world/obstacle2``.
+
+``model://`` busca en ``$GAZEBO_MODEL_PATH``, y aunque la ruta está bien configurada, comprobable con ``gazebo /home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model``, al ejecutar el launch ``ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model`` Gazebo no arranca. 
+
+He descubierto que es porque no consigue cargar esos modelos, y que si se pone en la ``<uri>`` el path completo ``/home/javierac/turtlebot3_drlnav_ws/src/turtlebot3_simulations/turtlebot3_gazebo/models/turtlebot3_drl_world/obstacle1`` (ver fichero ``stage9-obstacle-javi.model``) funciona, es decir: ``ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9-obstacle-javi.model``. 
