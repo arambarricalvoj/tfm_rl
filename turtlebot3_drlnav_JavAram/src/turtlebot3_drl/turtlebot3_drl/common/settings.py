@@ -70,14 +70,14 @@ REWARD_FUNCTION = "A"       # Defined in reward.py
 ACTION_SIZE     = 2         # Not used for DQN, see DQN_ACTION_SIZE
 HIDDEN_SIZE     = 512       # Number of neurons in hidden layers
 
-BATCH_SIZE      = 1024       # Number of samples per training batch
+BATCH_SIZE      = 128       # Number of samples per training batch
 BUFFER_SIZE     = 1000000   # Number of samples stored in replay buffer before FIFO
 DISCOUNT_FACTOR = 0.99
-LEARNING_RATE   = 0.00003
-TAU             = 0.00003
+LEARNING_RATE   = 0.003
+TAU             = 0.003
 
-OBSERVE_STEPS   = 50000     # At training start random actions are taken for N steps for better exploration
-STEP_TIME       = 0.0 #0.01      # Delay between steps, can be set to 0
+OBSERVE_STEPS   = 15000     # At training start random actions are taken for N steps for better exploration
+STEP_TIME       = 0.1 #0.01      # Delay between steps, can be set to 0
 EPSILON_DECAY   = 0.9995    # Epsilon decay per step
 EPSILON_MINIMUM = 0.05
 

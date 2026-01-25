@@ -1,0 +1,31 @@
+root@6baae9c2eba5:/# ps -eo pid,etimes,etime,cmd
+    PID ELAPSED     ELAPSED CMD
+      1   90984  1-01:16:24 /bin/bash
+     59   90962  1-01:16:02 bash
+     60   90962  1-01:16:02 bash
+     71   90962  1-01:16:02 bash
+    253   89970  1-00:59:30 /usr/bin/python3 /opt/ros/humble/bin/ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gaze
+    256   89969  1-00:59:29 gzserver -s libgazebo_ros_init.so -s libgazebo_ros_factory.so /home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9-
+    258   89969  1-00:59:29 gzclient
+    260   89969  1-00:59:29 /opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args -r __node:=dock_state_publisher -r __ns:=/ --params-file /tmp/launch_params_6wlymnop --p
+    262   89969  1-00:59:29 /opt/ros/humble/lib/tf2_ros/static_transform_publisher 0.157 0 0 3.141592 0 0 odom std_dock_link --ros-args -r __node:=tf_odom_std_dock_link_publisher -r __ns:=/ -
+    266   89969  1-00:59:29 /usr/bin/python3 /opt/ros/humble/lib/joint_state_publisher/joint_state_publisher --ros-args -r __node:=joint_state_publisher -r __ns:=/ --params-file /tmp/launch_p
+    268   89969  1-00:59:29 /opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args -r __node:=robot_state_publisher -r __ns:=/ --params-file /tmp/launch_params_cdqwk812 --
+    272   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/hazards_vector_publisher --ros-args -r __node:=hazards_vector_publisher -r __ns:=/ --
+    274   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/ir_intensity_vector_publisher --ros-args -r __node:=ir_intensity_vector_publisher -r 
+    276   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/motion_control --ros-args -r __node:=motion_control -r __ns:=/ --params-file /tmp/lau
+    278   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/wheel_status_publisher --ros-args -r __node:=wheel_status_publisher -r __ns:=/ --para
+    280   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/mock_publisher --ros-args -r __node:=mock_publisher -r __ns:=/ --params-file /home/ja
+    282   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/robot_state --ros-args -r __node:=robot_state -r __ns:=/ --params-file /home/javierac
+    284   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/kidnap_estimator_publisher --ros-args -r __node:=kidnap_estimator_publisher -r __ns:=
+    286   89969  1-00:59:29 /home/javierac/create3_ws/install/irobot_create_nodes/lib/irobot_create_nodes/ui_mgr --ros-args -r __node:=ui_mgr -r __ns:=/ --params-file /home/javierac/create3_w
+    288   89969  1-00:59:29 /opt/ros/humble/lib/rviz2/rviz2 --display-config /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/rviz/irobot_crea
+    775   89945  1-00:59:05 /usr/bin/python3 /opt/ros/humble/bin/ros2 run turtlebot3_drl environment
+    778   89945  1-00:59:05 /usr/bin/python3 /home/javierac/turtlebot3_drlnav_ws/install/turtlebot3_drl/lib/turtlebot3_drl/environment
+    827   89941  1-00:59:01 /usr/bin/python3 /opt/ros/humble/bin/ros2 run turtlebot3_drl train_agent ddpg
+    830   89941  1-00:59:01 /usr/bin/python3 /home/javierac/turtlebot3_drlnav_ws/install/turtlebot3_drl/lib/turtlebot3_drl/train_agent ddpg
+    883   89937  1-00:58:57 /usr/bin/python3 /opt/ros/humble/bin/ros2 run turtlebot3_drl gazebo_goals
+    884   89937  1-00:58:57 /usr/bin/python3 /home/javierac/turtlebot3_drlnav_ws/install/turtlebot3_drl/lib/turtlebot3_drl/gazebo_goals
+   1217   59176    16:26:16 bash
+   1230       0       00:00 ps -eo pid,etimes,etime,cmd
+root@6baae9c2eba5:/# 
