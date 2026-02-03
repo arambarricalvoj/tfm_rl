@@ -1,7 +1,0 @@
-[01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:[m[K In member function ‘[01m[Kvoid irobot_create_nodes::MotionControlNode::reset_pose_request(irobot_create_msgs::srv::ResetPose_Request_<std::allocator<void> >::SharedPtr, irobot_create_msgs::srv::ResetPose_Response_<std::allocator<void> >::SharedPtr)[m[K’:
-[01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:442:64:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Krequest[m[K’ [[01;35m[K-Wunused-parameter[m[K]
-  442 |   [01;35m[Kconst irobot_create_msgs::srv::ResetPose::Request::SharedPtr request[m[K,
-      |   [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~[m[K
-[01m[K/home/javierac/create3_ws/src/irobot_create_common/irobot_create_nodes/src/motion_control_node.cpp:443:59:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kresponse[m[K’ [[01;35m[K-Wunused-parameter[m[K]
-  443 |   [01;35m[Kirobot_create_msgs::srv::ResetPose::Response::SharedPtr response[m[K){
-      |   [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~[m[K
