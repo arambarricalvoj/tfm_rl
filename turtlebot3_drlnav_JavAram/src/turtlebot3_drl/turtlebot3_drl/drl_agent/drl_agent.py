@@ -42,6 +42,7 @@ import rclpy
 from rclpy.node import Node
 from ..common.replaybuffer import ReplayBuffer
 
+
 class DrlAgent(Node):
     def __init__(self, training, algorithm, load_session="", load_episode=0, real_robot=0):
         super().__init__(algorithm + '_agent')
@@ -64,7 +65,7 @@ class DrlAgent(Node):
         elif self.algorithm == 'ddpg':
             self.model = DDPG(self.device, self.sim_speed)
         elif self.algorithm == 'td3':
-            self.model = TD3(self.device, self.sim_speed) 
+            self.model = TD3(self.device, self.sim_speed)
         else:
             quit("\033[1m" + "\033[93m" + f"invalid algorithm specified ({self.algorithm}), choose one of: dqn, ddpg, td3" + "\033[0m}")
 
@@ -83,7 +84,10 @@ class DrlAgent(Node):
             self.model.device = self.device
             self.sm.load_weights(self.model.networks)
             if self.training:
-                self.replay_buffer.buffer = self.sm.load_replay_buffer(self.model.buffer_size, os.path.join(self.load_session, 'stage'+str(self.sm.stage)+'_latest_buffer.pkl'))
+                self.replay_buffer.buffer = self.sm.load_replay_buffer(
+                    self.model.buffer_size,
+                    os.path.join(self.load_session, 'stage' + str(self.sm.stage) + '_latest_buffer.pkl')
+                )
             self.total_steps = self.graph.set_graphdata(self.sm.load_graphdata(), self.episode)
             print(f"global steps: {self.total_steps}")
             print(f"loaded model {self.load_session} (eps {self.episode}): {self.model.get_model_parameters()}")
@@ -92,10 +96,21 @@ class DrlAgent(Node):
             self.sm.store_model(self.model)
 
         self.graph.session_dir = self.sm.session_dir
-        self.logger = Logger(self.training, self.sm.machine_dir, self.sm.session_dir, self.sm.session, self.model.get_model_parameters(), self.model.get_model_configuration(), str(util.stage), self.algorithm, self.episode)
+        self.logger = Logger(
+            self.training,
+            self.sm.machine_dir,
+            self.sm.session_dir,
+            self.sm.session,
+            self.model.get_model_parameters(),
+            self.model.get_model_configuration(),
+            str(util.stage),
+            self.algorithm,
+            self.episode
+        )
         if ENABLE_VISUAL:
             self.visual = DrlVisual(self.model.state_size, self.model.hidden_size)
             self.model.attach_visual(self.visual)
+
         # ===================================================================== #
         #                             Start Process                             #
         # ===================================================================== #
@@ -107,11 +122,12 @@ class DrlAgent(Node):
             self.gazebo_unpause = self.create_client(Empty, '/unpause_physics')
         self.process()
 
-
     def process(self):
         util.pause_simulation(self, self.real_robot)
-        while (True):
-            util.wait_new_goal(self)
+        while True:
+            # Antes: util.wait_new_goal(self)
+            # Ahora: empezamos episodios directamente, sin depender de gazebo_goals
+
             episode_done = False
             step, reward_sum, loss_critic, loss_actor = 0, 0, 0, 0
             action_past = [0.0, 0.0]
@@ -136,23 +152,21 @@ class DrlAgent(Node):
                 if self.algorithm == 'dqn':
                     action_current = self.model.possible_actions[action]
 
-                # Take a step
                 next_state, reward, episode_done, outcome, distance_traveled = util.step(self, action_current, action_past)
                 action_past = copy.deepcopy(action_current)
                 reward_sum += reward
 
                 if ENABLE_STACKING:
-                    frame_buffer = frame_buffer[self.model.state_size:] + list(next_state)      # Update big buffer with single step
-                    next_state = []                                                         # Prepare next set of frames (state)
+                    frame_buffer = frame_buffer[self.model.state_size:] + list(next_state)
+                    next_state = []
                     for depth in range(self.model.stack_depth):
                         start = self.model.state_size * (self.model.frame_skip - 1) + (self.model.state_size * self.model.frame_skip * depth)
-                        next_state += frame_buffer[start : start + self.model.state_size]
+                        next_state += frame_buffer[start: start + self.model.state_size]
 
-                # Train
-                if self.training == True:
+                if self.training:
                     self.replay_buffer.add_sample(state, action, [reward], next_state, [episode_done])
                     if self.replay_buffer.get_length() >= self.model.batch_size:
-                        loss_c, loss_a, = self.model._train(self.replay_buffer)
+                        loss_c, loss_a = self.model._train(self.replay_buffer)
                         loss_critic += loss_c
                         loss_actor += loss_a
 
@@ -162,7 +176,6 @@ class DrlAgent(Node):
                 step += 1
                 time.sleep(self.model.step_time)
 
-            # Episode done
             util.pause_simulation(self, self.real_robot)
             self.total_steps += step
             duration = time.perf_counter() - episode_start
@@ -170,29 +183,29 @@ class DrlAgent(Node):
             self.finish_episode(step, duration, outcome, distance_traveled, reward_sum, loss_critic, loss_actor)
 
     def finish_episode(self, step, eps_duration, outcome, dist_traveled, reward_sum, loss_critic, lost_actor):
-            if self.total_steps < self.observe_steps:
-                print(f"Observe phase: {self.total_steps}/{self.observe_steps} steps")
-                return
+        if self.total_steps < self.observe_steps:
+            print(f"Observe phase: {self.total_steps}/{self.observe_steps} steps")
+            return
 
-            self.episode += 1
-            print(f"Epi: {self.episode:<5}R: {reward_sum:<8.3f}outcome: {util.translate_outcome(outcome):<13}", end='')
-            print(f"steps: {step:<6}steps_total: {self.total_steps:<7}time: {eps_duration:<6.2f}")
+        self.episode += 1
+        print(f"Epi: {self.episode:<5}R: {reward_sum:<8.3f}outcome: {util.translate_outcome(outcome):<13}", end='')
+        print(f"steps: {step:<6}steps_total: {self.total_steps:<7}time: {eps_duration:<6.2f}")
 
-            if (not self.training):
-                self.logger.update_test_results(step, outcome, dist_traveled, eps_duration, 0)
-                return
+        if not self.training:
+            self.logger.update_test_results(step, outcome, dist_traveled, eps_duration, 0)
+            return
 
-            self.graph.update_data(step, self.total_steps, outcome, reward_sum, loss_critic, lost_actor)
-            self.logger.file_log.write(f"{self.episode}, {reward_sum}, {outcome}, {eps_duration}, {step}, {self.total_steps}, \
-                                            {self.replay_buffer.get_length()}, {loss_critic / step}, {lost_actor / step}\n")
+        self.graph.update_data(step, self.total_steps, outcome, reward_sum, loss_critic, lost_actor)
+        self.logger.file_log.write(
+            f"{self.episode}, {reward_sum}, {outcome}, {eps_duration}, {step}, {self.total_steps}, "
+            f"{self.replay_buffer.get_length()}, {loss_critic / step}, {lost_actor / step}\n"
+        )
 
-            if (self.episode % MODEL_STORE_INTERVAL == 0) or (self.episode == 1):
-                self.sm.save_session(self.episode, self.model.networks, self.graph.graphdata, self.replay_buffer.buffer)
-                self.logger.update_comparison_file(self.episode, self.graph.get_success_count(), self.graph.get_reward_average())
-            if (self.episode % GRAPH_DRAW_INTERVAL == 0) or (self.episode == 1):
-                self.graph.draw_plots(self.episode)
-
-
+        if (self.episode % MODEL_STORE_INTERVAL == 0) or (self.episode == 1):
+            self.sm.save_session(self.episode, self.model.networks, self.graph.graphdata, self.replay_buffer.buffer)
+            self.logger.update_comparison_file(self.episode, self.graph.get_success_count(), self.graph.get_reward_average())
+        if (self.episode % GRAPH_DRAW_INTERVAL == 0) or (self.episode == 1):
+            self.graph.draw_plots(self.episode)
 
 
 def main(args=sys.argv[1:]):
@@ -202,17 +215,21 @@ def main(args=sys.argv[1:]):
     drl_agent.destroy()
     rclpy.shutdown()
 
+
 def main_train(args=sys.argv[1:]):
     args = ['1'] + args
     main(args)
+
 
 def main_test(args=sys.argv[1:]):
     args = ['0'] + args
     main(args)
 
+
 def main_real(args=sys.argv[1:]):
     args = ['0'] + args + ['0']
     main(args)
+
 
 if __name__ == '__main__':
     main()
