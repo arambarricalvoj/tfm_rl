@@ -45,23 +45,6 @@ def get_reward_exploration(
     coverage,
     prev_coverage
 ):
-    """
-    Reward para exploración pura:
-    - Recompensa por aumentar cobertura
-    - Penalización por quedarse quieto
-    - Penalización por acercarse demasiado a obstáculos
-    - Penalizaciones fuertes por colisión / tumble / timeout
-    """
-
-    # Penalizaciones fuertes
-    if succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE]:
-        return -1.0
-
-    if succeed == TIMEOUT:
-        return -0.5
-
-    if succeed == SUCCESS:
-        return 2.0
 
     # Recompensa por incremento de cobertura
     delta = coverage - prev_coverage
@@ -73,7 +56,23 @@ def get_reward_exploration(
     # Penalización por acercarse demasiado a obstáculos
     r_obstacle = -0.2 if min_obstacle_dist < 0.25 else 0.0
 
-    return r_explore + r_motion + r_obstacle
+    # Valor por defecto
+    success = 0.0
+
+    # Colisión
+    if succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE]:
+        success = -1.0 + min(r_explore, 0.3)
+
+    # Timeout (sí cuenta la cobertura)
+    elif succeed == TIMEOUT:
+        success = -0.5 + min(r_explore, 0.3)
+
+    # Success (ya ha explorado suficiente)
+    elif succeed == SUCCESS:
+        success = 2.0
+
+    return r_explore + r_motion + r_obstacle + success
+
 
 
 # ============================================================
