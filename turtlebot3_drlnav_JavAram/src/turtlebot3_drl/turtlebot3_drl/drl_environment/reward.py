@@ -10,10 +10,8 @@ from ..common.settings import (
 #  COMPATIBILIDAD CON EL AGENTE
 # ============================================================
 
-# El agente espera esta variable
 REWARD_FUNCTION = "exploration"
 
-# El agente espera esta variable también
 def reward_function_internal(
     succeed,
     action_linear,
@@ -35,7 +33,7 @@ def reward_function_internal(
 
 
 # ============================================================
-#  REWARD DE EXPLORACIÓN (versión final)
+#  REWARD DE EXPLORACIÓN (versión optimizada)
 # ============================================================
 
 def get_reward_exploration(
@@ -46,33 +44,44 @@ def get_reward_exploration(
     prev_coverage
 ):
 
-    # Recompensa por incremento de cobertura
+    # --------------------------------------------------------
+    # 1. Recompensa continua por cobertura total
+    # --------------------------------------------------------
+    # Esto da señal en cada paso, no solo cuando cambia el mapa.
+    r_total = 20.0 * coverage
+
+    # --------------------------------------------------------
+    # 2. Bonus por incremento de cobertura
+    # --------------------------------------------------------
     delta = coverage - prev_coverage
-    r_explore = 5.0 * delta
+    r_delta = 200.0 * delta if delta > 0 else 0.0
 
-    # Penalización por quedarse quieto
-    r_motion = -0.01 if abs(action_linear) < 0.05 else 0.0
+    # --------------------------------------------------------
+    # 3. Penalización por quedarse quieto
+    # --------------------------------------------------------
+    r_motion = -0.02 if abs(action_linear) < 0.05 else 0.0
 
-    # Penalización por acercarse demasiado a obstáculos
-    r_obstacle = -0.2 if min_obstacle_dist < 0.25 else 0.0
+    # --------------------------------------------------------
+    # 4. Penalización suave por obstáculos
+    # --------------------------------------------------------
+    r_obstacle = -0.05 if min_obstacle_dist < 0.25 else 0.0
 
-    # Valor por defecto
-    success = 0.0
-
-    # Colisión
+    # --------------------------------------------------------
+    # 5. Eventos terminales
+    # --------------------------------------------------------
     if succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE]:
-        success = -1.0 + min(r_explore, 0.3)
-
-    # Timeout (sí cuenta la cobertura)
+        r_terminal = -1.0
     elif succeed == TIMEOUT:
-        success = -0.5 + min(r_explore, 0.3)
-
-    # Success (ya ha explorado suficiente)
+        r_terminal = -0.5
     elif succeed == SUCCESS:
-        success = 2.0
+        r_terminal = +5.0
+    else:
+        r_terminal = 0.0
 
-    return r_explore + r_motion + r_obstacle + success
-
+    # --------------------------------------------------------
+    # Reward final
+    # --------------------------------------------------------
+    return r_total + r_delta + r_motion + r_obstacle + r_terminal
 
 
 # ============================================================

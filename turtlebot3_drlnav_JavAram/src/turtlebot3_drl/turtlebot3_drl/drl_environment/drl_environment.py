@@ -383,7 +383,7 @@ class DRLEnvironment(Node):
             self.done = False
             self.reset_deadline = True
 
-        if self.local_step % 200 == 0:
+        if self.local_step % 20 == 0:
             print(
                 f"R: {response.reward:<6.2f}  "
                 f"MinD: {self.obstacle_distance:<5.2f}  "
