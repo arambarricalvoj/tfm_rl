@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-
-import math
-import numpy
-import sys
-import copy
-from math import inf as Infinity
-import time
-
 from geometry_msgs.msg import Twist
 from rosgraph_msgs.msg import Clock
 from nav_msgs.msg import Odometry, OccupancyGrid
@@ -42,6 +33,12 @@ from ..common.settings import (
     OBSTACLE_RADIUS
 )
 
+import numpy
+import math
+import time
+import copy
+
+Infinity = float("inf")
 NUM_SCAN_SAMPLES = 40
 LINEAR = 0
 ANGULAR = 1
@@ -300,22 +297,11 @@ class DRLEnvironment(Node):
             self.succeed = SUCCESS
 
         if self.succeed is not UNKNOWN and self.episode_started:
-
-            """print(
-                f"[EPISODE END] "
-                f"MinD: {self.obstacle_distance:<5.2f}  "
-                f"Map: {self.map_coverage*100:5.1f}%  "
-                f"Steps: {self.local_step}"
-            )"""
-
             self.stop_reset_robot(self.succeed == SUCCESS)
 
         return state
 
     def initalize_episode(self, response):
-
-        # NO esperar a slam_ready aquí
-        # slam_ready solo se usa entre episodios
 
         self.prev_coverage = self.map_coverage
         self.last_coverage = self.map_coverage
@@ -357,16 +343,15 @@ class DRLEnvironment(Node):
 
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR])
 
-        response.reward = float(rw.get_reward(
+        # -----------------------------
+        # REWARD DE EXPLORACIÓN
+        # -----------------------------
+        response.reward = float(rw.get_reward_exploration(
             self.succeed,
             action_linear,
             action_angular,
-            0.0,
-            0.0,
-            self.obstacle_distance,
             self.map_coverage,
-            self.prev_coverage,
-            "explore"
+            self.obstacle_distance
         ))
 
         self.prev_coverage = self.map_coverage
@@ -395,7 +380,7 @@ class DRLEnvironment(Node):
         return response
 
 
-def main(args=sys.argv[1:]):
+def main(args=None):
     rclpy.init(args=args)
     drl_environment = DRLEnvironment()
     rclpy.spin(drl_environment)

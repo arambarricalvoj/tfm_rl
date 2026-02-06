@@ -1,112 +1,106 @@
-from ..common.settings import (
-    COLLISION_OBSTACLE,
-    COLLISION_WALL,
-    TUMBLE,
-    SUCCESS,
-    TIMEOUT,
-)
+from ..common.settings import REWARD_FUNCTION, COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE, SUCCESS, TIMEOUT, RESULTS_NUM
 
-# ============================================================
-#  COMPATIBILIDAD CON EL AGENTE
-# ============================================================
+goal_dist_initial = 0
 
-REWARD_FUNCTION = "exploration"
+reward_function_internal = None
 
-def reward_function_internal(
-    succeed,
-    action_linear,
-    action_angular,
-    distance_to_goal,
-    goal_angle,
-    min_obstacle_dist,
-    coverage,
-    prev_coverage,
-    phase
-):
-    return get_reward_exploration(
-        succeed,
-        action_linear,
-        min_obstacle_dist,
-        coverage,
-        prev_coverage
-    )
+def get_reward(succeed, action_linear, action_angular, distance_to_goal, goal_angle, min_obstacle_distance):
+    return reward_function_internal(succeed, action_linear, action_angular, distance_to_goal, goal_angle, min_obstacle_distance)
+
+def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, min_obstacle_dist):
+        # [-3.14, 0]
+        r_yaw = float(-1 * abs(goal_angle)) # Penalize error in orientation towards goal
+
+        # [-4, 0]
+        r_vangular = -1 * (action_angular**2) # Penalize high angular velocities
+
+        # [-1, 1]
+        r_distance = (2 * float(goal_dist_initial)) / (float(goal_dist_initial) + float(goal_dist)) - 1 # Reward getting closer to the goal
+
+        # [-20, 0]
+        if min_obstacle_dist < 0.22: # Penalize being too close to obstacles
+            r_obstacle = -20
+        else:
+            r_obstacle = 0
+
+        # [-2 * (3^2), 0]
+        r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2) # Penalize going Velocities different than max robot velocity
+
+        reward = (r_yaw + r_distance + r_obstacle + r_vangular+ r_vlinear - 10)/1000 # Added -1 as a time penalty
+        #reward = (r_yaw + r_distance*10 + r_vangular - 10)/10000 # Added -1 as a time penalty
+        #reward = (r_distance - 1)/1000 # Added -1 as a time penalty
+        if succeed == SUCCESS:
+            reward += 2.0
+        elif succeed == COLLISION_OBSTACLE or succeed == COLLISION_WALL or succeed == TIMEOUT:
+            reward -= 1.0
+        return float(reward)
+
+# === Variables globales para exploración ===
+coverage_last_update = 0.0
+steps_since_last_update = 0
 
 
-# ============================================================
-#  REWARD DE EXPLORACIÓN (versión optimizada)
-# ============================================================
+# === Reward por exploración ===
+def get_reward_exploration(succeed, action_linear, action_angular,
+                           coverage_now, min_obstacle_dist):
 
-def get_reward_exploration(
-    succeed,
-    action_linear,
-    min_obstacle_dist,
-    coverage,
-    prev_coverage
-):
+    global coverage_last_update, steps_since_last_update
 
-    # --------------------------------------------------------
-    # 1. Recompensa continua por cobertura total
-    # --------------------------------------------------------
-    # Esto da señal en cada paso, no solo cuando cambia el mapa.
-    r_total = 20.0 * coverage
-
-    # --------------------------------------------------------
-    # 2. Bonus por incremento de cobertura
-    # --------------------------------------------------------
-    delta = coverage - prev_coverage
-    r_delta = 200.0 * delta if delta > 0 else 0.0
-
-    # --------------------------------------------------------
-    # 3. Penalización por quedarse quieto
-    # --------------------------------------------------------
-    r_motion = -0.02 if abs(action_linear) < 0.05 else 0.0
-
-    # --------------------------------------------------------
-    # 4. Penalización suave por obstáculos
-    # --------------------------------------------------------
-    r_obstacle = -0.05 if min_obstacle_dist < 0.25 else 0.0
-
-    # --------------------------------------------------------
-    # 5. Eventos terminales
-    # --------------------------------------------------------
-    if succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE]:
-        r_terminal = -1.0
-    elif succeed == TIMEOUT:
-        r_terminal = -0.5
-    elif succeed == SUCCESS:
-        r_terminal = +5.0
+    # --- Capa rápida (cada step) ---
+    # Seguridad
+    if min_obstacle_dist < 0.18:
+        r_wall = -1.0
+    elif min_obstacle_dist < 0.35:
+        r_wall = -0.3
     else:
-        r_terminal = 0.0
+        r_wall = 0.0
 
-    # --------------------------------------------------------
-    # Reward final
-    # --------------------------------------------------------
-    return r_total + r_delta + r_motion + r_obstacle + r_terminal
+    # Suavidad
+    r_smooth = -0.01 * (action_angular ** 2)
 
+    # Tiempo
+    r_time = -0.001
 
-# ============================================================
-#  API PRINCIPAL (el agente llama a esto)
-# ============================================================
+    reward = r_wall + r_smooth + r_time
 
-def get_reward(
-    succeed,
-    action_linear,
-    action_angular,
-    distance_to_goal,
-    goal_angle,
-    min_obstacle_dist,
-    coverage,
-    prev_coverage,
-    phase
-):
-    return reward_function_internal(
-        succeed,
-        action_linear,
-        action_angular,
-        distance_to_goal,
-        goal_angle,
-        min_obstacle_dist,
-        coverage,
-        prev_coverage,
-        phase
-    )
+    # --- Capa lenta (solo cuando coverage cambia) ---
+    delta_cov = max(0.0, coverage_now - coverage_last_update)
+
+    if delta_cov > 0.0:
+        # Eficiencia: cobertura nueva por step
+        r_cov = 5.0 * (delta_cov / max(1, steps_since_last_update))
+
+        # Bonus por salto grande
+        if delta_cov > 0.03:
+            r_cov += 1.0
+
+        reward += r_cov
+
+        # Reset
+        coverage_last_update = coverage_now
+        steps_since_last_update = 0
+    else:
+        steps_since_last_update += 1
+
+    # Penalización por colisión
+    if succeed == COLLISION_OBSTACLE or succeed == COLLISION_WALL or succeed == TIMEOUT:
+        reward -= 2.0
+
+    return float(reward)
+
+# Define your own reward function by defining a new function: 'get_reward_X'
+# Replace X with your reward function name and configure it in settings.py
+
+def reward_initalize(init_distance_to_goal):
+    global goal_dist_initial
+    goal_dist_initial = init_distance_to_goal
+
+def reward_initialize_exploration(init_coverage):
+    global coverage_last_update, steps_since_last_update
+    coverage_last_update = init_coverage
+    steps_since_last_update = 0
+
+function_name = "get_reward_" + REWARD_FUNCTION
+reward_function_internal = globals()[function_name]
+if reward_function_internal == None:
+    quit(f"Error: reward function {function_name} does not exist")
