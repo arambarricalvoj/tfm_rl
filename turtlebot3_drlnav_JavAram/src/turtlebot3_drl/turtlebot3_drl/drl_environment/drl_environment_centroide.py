@@ -17,30 +17,9 @@ from rclpy.qos import QoSProfile, qos_profile_sensor_data, ReliabilityPolicy
 
 from . import reward as rw
 from ..common import utilities as util
-from ..common.settings import (
-    ENABLE_BACKWARD,
-    EPISODE_TIMEOUT_SECONDS,
-    ENABLE_MOTOR_NOISE,
-    UNKNOWN,
-    SUCCESS,
-    COLLISION_WALL,
-    COLLISION_OBSTACLE,
-    TIMEOUT,
-    TUMBLE,
-    TOPIC_SCAN,
-    TOPIC_VELO,
-    TOPIC_ODOM,
-    ARENA_LENGTH,
-    ARENA_WIDTH,
-    MAX_NUMBER_OBSTACLES,
-    OBSTACLE_RADIUS,
-    LIDAR_DISTANCE_CAP,
-    SPEED_LINEAR_MAX,
-    SPEED_ANGULAR_MAX,
-    THRESHOLD_COLLISION,
-    ENABLE_DYNAMIC_GOALS,
-    IG_SUCCESS_THRESHOLD
-)
+from ..common.settings import ENABLE_BACKWARD, EPISODE_TIMEOUT_SECONDS, ENABLE_MOTOR_NOISE, UNKNOWN, SUCCESS, COLLISION_WALL, COLLISION_OBSTACLE, TIMEOUT, TUMBLE, \
+                                TOPIC_SCAN, TOPIC_VELO, TOPIC_ODOM, ARENA_LENGTH, ARENA_WIDTH, MAX_NUMBER_OBSTACLES, OBSTACLE_RADIUS, LIDAR_DISTANCE_CAP, \
+                                    SPEED_LINEAR_MAX, SPEED_ANGULAR_MAX, THRESHOLD_COLLISION, ENABLE_DYNAMIC_GOALS, IG_SUCCESS_THRESHOLD
 
 NUM_SCAN_SAMPLES = 40
 LINEAR = 0
@@ -96,12 +75,12 @@ class DRLEnvironment(Node):
         self.entropy_current = 0.0
         self.coverage_prev = 0.0
         self.coverage_current = 0.0
+        self.angle_to_entropy_region = 0.0
+        self.coverage_bonus = 0.0
 
-        # NEW: frontier list
-        self.frontiers = []
-
-        # NEW: gradient angle
-        self.angle_to_gradient = 0.0
+        ### CAMBIO: almacenar centroide para recalcular ángulo en cada step
+        self.entropy_cx = None
+        self.entropy_cy = None
 
         qos = QoSProfile(depth=10)
         qos_clock = QoSProfile(depth=1)
@@ -125,7 +104,7 @@ class DRLEnvironment(Node):
         self.step_comm_server = self.create_service(DrlStep, 'step_comm', self.step_comm_callback)
 
     # -------------------------------------------------------------------------
-    # MAP CALLBACK — detect frontiers + compute entropy/coverage
+    # MAP CALLBACK
     # -------------------------------------------------------------------------
     def map_callback(self, msg):
         if self.waiting_first_map:
@@ -143,55 +122,39 @@ class DRLEnvironment(Node):
             return
 
         data = msg.data
-
         unknown_count = 0
         known_count = 0
-
-        # NEW: frontier detection
-        self.frontiers = []
-        w = self.map_width
-        h = self.map_height
+        sum_x_unknown = 0.0
+        sum_y_unknown = 0.0
 
         for idx, v in enumerate(data):
             if v == -1:
                 unknown_count += 1
-                continue
+                col = idx % self.map_width
+                row = idx // self.map_width
+                wx = self.map_origin_x + (col + 0.5) * self.map_resolution
+                wy = self.map_origin_y + (row + 0.5) * self.map_resolution
+                sum_x_unknown += wx
+                sum_y_unknown += wy
             else:
                 known_count += 1
 
-            # Check if this known cell has an unknown neighbor
-            row = idx // w
-            col = idx % w
-
-            neighbors = [
-                (row - 1, col),
-                (row + 1, col),
-                (row, col - 1),
-                (row, col + 1)
-            ]
-
-            is_frontier = False
-            for nr, nc in neighbors:
-                if 0 <= nr < h and 0 <= nc < w:
-                    n_idx = nr * w + nc
-                    if data[n_idx] == -1:
-                        is_frontier = True
-                        break
-
-            if is_frontier:
-                wx = self.map_origin_x + (col + 0.5) * self.map_resolution
-                wy = self.map_origin_y + (row + 0.5) * self.map_resolution
-                self.frontiers.append((wx, wy))
-
-        # Entropy and coverage
         self.entropy_prev = self.entropy_current
         self.entropy_current = unknown_count / total_cells
 
         self.coverage_prev = self.coverage_current
         self.coverage_current = known_count / total_cells
 
+        ### CAMBIO: almacenar centroide pero NO calcular ángulo aquí
+        if unknown_count > 0:
+            self.entropy_cx = sum_x_unknown / unknown_count
+            self.entropy_cy = sum_y_unknown / unknown_count
+
+        # Sub-success
+        self.coverage_bonus = 0.5 if (self.coverage_current - self.coverage_prev) > 0.05 else 0.0
+
         if self.local_step % 20 == 0:
-            print(f"[MAP] cov: {self.coverage_current:.3f} ent: {self.entropy_current:.3f} frontiers: {len(self.frontiers)}")
+            print(f"[MAP] cov: {self.coverage_current:.3f} ent: {self.entropy_current:.3f}")
 
     # -------------------------------------------------------------------------
     # ODOM / SCAN / CLOCK / OBSTACLES
@@ -304,9 +267,12 @@ class DRLEnvironment(Node):
         self.entropy_current = 0.0
         self.coverage_prev = 0.0
         self.coverage_current = 0.0
+        self.angle_to_entropy_region = 0.0
+        self.coverage_bonus = 0.0
 
-        self.angle_to_gradient = 0.0
-        self.frontiers = []
+        ### CAMBIO: reset centroide
+        self.entropy_cx = None
+        self.entropy_cy = None
 
         response.state = self.get_state(0, 0)
         response.reward = 0.0
@@ -347,38 +313,20 @@ class DRLEnvironment(Node):
         twist.angular.z = action_angular
         self.cmd_vel_pub.publish(twist)
 
-        # ---------------------------------------------------------------------
-        # NEW: Compute gradient direction from frontiers
-        # ---------------------------------------------------------------------
-        Gx = 0.0
-        Gy = 0.0
-
-        """if self.coverage_current > 0.005 and len(self.frontiers) > 30:
-            # usar gradiente
+        ### CAMBIO: recalcular ángulo en cada step
+        if (
+            self.entropy_cx is not None and
+            self.entropy_cy is not None and
+            self.coverage_current > 0.01
+        ):
+            dx = self.entropy_cx - self.robot_x
+            dy = self.entropy_cy - self.robot_y
+            heading = math.atan2(dy, dx)
+            angle = heading - self.robot_heading
+            angle = (angle + math.pi) % (2 * math.pi) - math.pi
+            self.angle_to_entropy_region = angle
         else:
-            self.angle_to_gradient = 0.0
-        """
-
-        if len(self.frontiers) > 0 and self.coverage_current > 0.02:
-            for fx, fy in self.frontiers:
-                dx = fx - self.robot_x
-                dy = fy - self.robot_y
-                dist = math.sqrt(dx*dx + dy*dy)
-
-                if dist < 0.3:
-                    continue
-
-                weight = 1.0 / (dist * dist)
-                Gx += weight * dx
-                Gy += weight * dy
-
-            if abs(Gx) > 1e-6 or abs(Gy) > 1e-6:
-                self.angle_to_gradient = math.atan2(Gy, Gx) - self.robot_heading
-                self.angle_to_gradient = (self.angle_to_gradient + math.pi) % (2 * math.pi) - math.pi
-            else:
-                self.angle_to_gradient = 0.0
-        else:
-            self.angle_to_gradient = 0.0
+            self.angle_to_entropy_region = 0.0
 
         # Next state
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR])
@@ -391,10 +339,13 @@ class DRLEnvironment(Node):
             self.obstacle_distance,
             self.entropy_prev,
             self.entropy_current,
-            self.angle_to_gradient
+            self.angle_to_entropy_region
         )
 
-        response.reward = float(base_reward)
+        total_reward = float(base_reward + self.coverage_bonus)
+        self.coverage_bonus = 0.0
+
+        response.reward = total_reward
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0
@@ -408,16 +359,10 @@ class DRLEnvironment(Node):
             self.reset_deadline = True
 
         if self.local_step % 20 == 0:
-            print(
-                f"R: {response.reward:<8.4f} "
-                f"MinD: {self.obstacle_distance:<6.2f} "
-                f"Alin: {request.action[LINEAR]:<6.2f} "
-                f"Aturn: {request.action[ANGULAR]:<6.2f} "
-                f"cov: {self.coverage_current:.3f} "
-                f"ent: {self.entropy_current:.3f} "
-                f"ang_grad: {math.degrees(self.angle_to_gradient):.1f}° "
-                f"frontiers: {len(self.frontiers)}"
-            )
+            print(f"R: {response.reward:<8.4f} MinD: {self.obstacle_distance:<6.2f} "
+                  f"Alin: {request.action[LINEAR]:<6.2f} Aturn: {request.action[ANGULAR]:<6.2f} "
+                  f"cov: {self.coverage_current:.3f} ent: {self.entropy_current:.3f} "
+                  f"ang_ent: {math.degrees(self.angle_to_entropy_region):.1f}°")
 
         return response
 

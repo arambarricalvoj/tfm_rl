@@ -34,6 +34,8 @@ LIDAR_DISTANCE_CAP          = 6     # meters, for white objects can go up to 12 
 THRESHOLD_COLLISION         = 0.19  # meters around lidar reading to consider a collision
 THREHSOLD_GOAL              = 0.20  # meters
 
+IG_SUCCESS_THRESHOLD = 20.0
+
 OBSTACLE_RADIUS             = 0.16  # meters
 MAX_NUMBER_OBSTACLES        = 6
 ENABLE_MOTOR_NOISE          = False # Add normally distributed noise to motor output to simulate hardware imperfections

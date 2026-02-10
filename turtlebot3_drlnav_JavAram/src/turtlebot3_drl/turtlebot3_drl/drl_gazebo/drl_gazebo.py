@@ -6,7 +6,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from gazebo_msgs.srv import DeleteEntity, SpawnEntity
-from std_srvs.srv import Empty, Trigger
+from std_srvs.srv import Empty
 from geometry_msgs.msg import Pose, Twist
 
 import rclpy
@@ -57,11 +57,6 @@ class DRLGazebo(Node):
             Empty, 'reset_simulation', callback_group=self.cb_group
         )
 
-        # Cliente al entorno DRL para avisar de que SLAM está listo
-        self.slam_ready_client = self.create_client(
-            Trigger, 'slam_ready', callback_group=self.cb_group
-        )
-
         # Services
         self.task_succeed_server = self.create_service(
             RingGoal, 'task_succeed', self.task_succeed_callback,
@@ -81,10 +76,9 @@ class DRLGazebo(Node):
         # Start SLAM Toolbox
         self.start_slam_toolbox()
 
-        # Primera vez: esperar mapa y avisar al entorno
+        # Primera vez: esperar mapa (el entorno DRL también espera su primer /map)
         self.get_logger().info("Waiting for initial /map from SLAM Toolbox...")
         self.wait_for_map()
-        self.notify_slam_ready()
 
     # -------------------------------------------------------------------------
     # INITIALIZATION
@@ -136,8 +130,7 @@ class DRLGazebo(Node):
 
         print("Waiting for /map after restart...")
         self.wait_for_map()
-        print("SLAM Toolbox restarted, notifying DRL environment...")
-        self.notify_slam_ready()
+        print("SLAM Toolbox restarted.")
 
     def wait_for_map(self):
         from nav_msgs.msg import OccupancyGrid
@@ -168,23 +161,6 @@ class DRLGazebo(Node):
             self.get_logger().warn("SLAM Toolbox did not publish /map in time")
         else:
             self.get_logger().info("SLAM Toolbox published /map.")
-
-    def notify_slam_ready(self):
-        while not self.slam_ready_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('slam_ready service not available, waiting again...')
-
-        req = Trigger.Request()
-        future = self.slam_ready_client.call_async(req)
-
-        rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
-        if future.done():
-            resp = future.result()
-            if resp is not None and resp.success:
-                self.get_logger().info(f"SLAM ready acknowledged by DRL environment: {resp.message}")
-            else:
-                self.get_logger().warn("SLAM ready service call failed or returned no success")
-        else:
-            self.get_logger().warn("Timeout waiting for slam_ready response")
 
     # -------------------------------------------------------------------------
     # SIMULATION RESET
