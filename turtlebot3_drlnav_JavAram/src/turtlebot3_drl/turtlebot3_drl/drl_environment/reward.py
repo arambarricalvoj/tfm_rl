@@ -68,6 +68,54 @@ def get_reward_A(
 # -------------------------------------------------------------------------
 # REWARD PARA EXPLORACIÓN BASADA EN GRADIENTE
 # -------------------------------------------------------------------------
+"""def get_reward_exploration(
+    succeed,
+    action_linear,
+    action_angular,
+    min_obstacle_dist,
+    entropy_prev,
+    entropy_current,
+    angle_to_gradient
+):
+    # [-3.14, 0]
+    #r_yaw = -abs(angle_to_gradient)
+
+
+    r_forward = 3.0 * action_linear * math.cos(angle_to_gradient)
+    
+    # 1. Progreso de entropía (lo más importante)
+    r_progress = 100.0 * (entropy_prev - entropy_current)
+
+    # 2. Avance hacia la dirección del gradiente
+    #r_forward = 3.0 * action_linear * math.cos(angle_to_gradient)
+
+    # 3. Penalización por girar demasiado
+    # [-4, 0]
+    r_vangular = -1.0 * (action_angular ** 2)
+
+    # 4. Penalización por ir lento
+    # [-2 * (3^2), 0]
+    r_vlinear = -1.0 * ((0.3 - action_linear * 10) ** 2)
+
+    # 5. Obstáculos
+    r_obstacle = -20.0 if min_obstacle_dist < 0.22 else 0.0
+
+    # 6. Time penalty suave
+    #r_time = -0.01
+
+    reward = (r_forward + r_progress + r_vangular + r_vlinear + r_obstacle -10)/1000
+
+    # Final del episodio
+    #if succeed == SUCCESS:
+        #reward += 2.0
+    if succeed in [COLLISION_OBSTACLE, COLLISION_WALL]:
+        reward -= 1.0
+
+    return float(reward)"""
+
+# -------------------------------------------------------------------------
+# REWARD PARA EXPLORACIÓN BASADA EN GRADIENTE
+# -------------------------------------------------------------------------
 def get_reward_exploration(
     succeed,
     action_linear,
@@ -77,23 +125,38 @@ def get_reward_exploration(
     entropy_current,
     angle_to_gradient
 ):
+    # [-3.14, 0]
+    # Ya se incluye en r_forward, por lo que si se añade el robot girará demasiado.
+    """
+    Si añadeo r_yaw, el robot puede aprender:
+    “Girar para alinear la orientación me da más recompensa que avanzar”.
+
+    Y entonces:
+    gira mucho, avanza poco, explora lento, se queda “pensando” en orientarse perfectamente,
+    se vuelve obsesivo con el ángulo. Consecuencia de un r_yaw demasiado fuerte.
+    """
+    #r_yaw = -abs(angle_to_gradient)
+    
     # 1. Progreso de entropía (lo más importante)
-    r_progress = 5.0 * (entropy_prev - entropy_current)
+    r_progress = 8.0 * (entropy_prev - entropy_current)
 
     # 2. Avance hacia la dirección del gradiente
-    r_forward = 3.0 * action_linear * math.cos(angle_to_gradient)
+    # [-0.3, 0.3] * k; action linear [0, 0.3]
+    r_forward = 3.0 * action_linear * math.cos(angle_to_gradient) - angle_to_gradient
 
     # 3. Penalización por girar demasiado
+    # [-3.61, 0]; action angular [-1.9, 1.9]
     r_vangular = -1.0 * (action_angular ** 2)
 
     # 4. Penalización por ir lento
-    r_vlinear = -1.0 * ((0.3 - action_linear) ** 2)
+    # [-0.09, 0]
+    r_vlinear = -1.0 * ((0.3 - action_linear *2) ** 2)
 
     # 5. Obstáculos
     r_obstacle = -20.0 if min_obstacle_dist < 0.22 else 0.0
 
     # 6. Time penalty suave
-    r_time = -0.01
+    r_time = -0.001
 
     reward = (
         r_progress +
@@ -107,7 +170,7 @@ def get_reward_exploration(
     # Final del episodio
     if succeed == SUCCESS:
         reward += 2.0
-    elif succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TIMEOUT]:
+    elif succeed in [COLLISION_OBSTACLE, COLLISION_WALL]:
         reward -= 1.0
 
     return float(reward)

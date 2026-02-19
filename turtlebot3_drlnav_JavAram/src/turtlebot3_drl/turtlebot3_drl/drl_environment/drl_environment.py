@@ -359,7 +359,7 @@ class DRLEnvironment(Node):
             self.angle_to_gradient = 0.0
         """
 
-        if len(self.frontiers) > 0 and self.coverage_current > 0.02:
+        if len(self.frontiers) > 0 and self.coverage_current > 0.001:
             for fx, fy in self.frontiers:
                 dx = fx - self.robot_x
                 dy = fy - self.robot_y

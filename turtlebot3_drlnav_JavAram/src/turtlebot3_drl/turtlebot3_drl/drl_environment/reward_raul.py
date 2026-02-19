@@ -8,22 +8,22 @@ def get_reward(succeed, action_linear, action_angular, distance_to_goal, goal_an
     return reward_function_internal(succeed, action_linear, action_angular, distance_to_goal, goal_angle, min_obstacle_distance)
 
 def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, min_obstacle_dist):
-        # [-3.14, 0]
+        # [-3.14, 0] no es demasiado fuerte
         r_yaw = float(-1 * abs(goal_angle)) # Penalize error in orientation towards goal
 
-        # [-4, 0]
+        # [-4, 0] bien
         r_vangular = -1 * (action_angular**2) # Penalize high angular velocities
 
-        # [-1, 1]
+        # [-1, 1] es suave
         r_distance = (2 * float(goal_dist_initial)) / (float(goal_dist_initial) + float(goal_dist)) - 1 # Reward getting closer to the goal
 
-        # [-20, 0]
+        # [-20, 0] muy fuerte
         if min_obstacle_dist < 0.22: # Penalize being too close to obstacles
             r_obstacle = -20
         else:
             r_obstacle = 0
 
-        # [-2 * (3^2), 0]
+        # [-2 * (3^2), 0] fuerte
         r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2) # Penalize going Velocities different than max robot velocity
 
         reward = (r_yaw + r_distance + r_obstacle + r_vangular+ r_vlinear - 10)/1000 # Added -1 as a time penalty

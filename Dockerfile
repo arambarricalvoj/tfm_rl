@@ -27,10 +27,11 @@ RUN apt-get update && apt-get install -y \
     ros-humble-rsl \
     ros-humble-gazebo-dev \
     ros-humble-nav2-rviz-plugins \
-    ros-humble-slam-toolbox \
     ros-humble-navigation2 \
     ros-humble-nav2-bringup \
     && rm -rf /var/lib/apt/lists/*
+
+# sudo apt install ros-humble-slam-toolbox
 
 # --- Modelos de Gazebo ---
 RUN git clone https://github.com/osrf/gazebo_models.git /usr/share/gazebo/models
@@ -50,6 +51,32 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 
 # --- Variables de entorno ROS/Gazebo ---
 ENV GAZEBO_MODEL_PATH=/usr/share/gazebo/models
+
+# ============================================================
+# === Instalar SLAM Toolbox Lifecycle desde el repositorio ===
+# ============================================================
+
+# Crear workspace
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/src
+
+# Clonar la versión lifecycle
+RUN git clone -b humble_lifecycle https://github.com/SteveMacenski/slam_toolbox.git
+
+# Instalar dependencias
+WORKDIR /ros2_ws
+RUN apt-get update && rosdep update && \
+    rosdep install -y --from-paths src --ignore-src && \
+    rm -rf /var/lib/apt/lists/*
+
+# Compilar
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+
+# Añadir overlay permanente
+RUN echo 'source /opt/ros/humble/setup.bash' >> /etc/bash.bashrc && \
+    echo 'source /ros2_ws/install/setup.bash' >> /etc/bash.bashrc
+
+# ============================================================
 
 # --- Copiar scripts de ROS ---
 COPY ./ros_entrypoint.sh /ros_entrypoint.sh
