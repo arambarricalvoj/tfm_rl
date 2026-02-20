@@ -88,7 +88,24 @@ ros2 run gazebo_ros spawn_entity.py -entity caja1 -database cardboard_box -x 3 -
 
 Tras haber movido el robot con con el teclado y haber generado un mapa, se pueden mandar *2D Goal pose* desde *RViz2* y *Nav2* (cuarta terminal) se encargará de navegar hasta el objetivo.
 
-<!-- ## DRL-NAV (turtlebot3)
+# 4. DRL (turtlebot3)
+Falta de documentar bien esta sección, solo he añadido la quinta terminal, que estando en ``create3_ws/`` hay que ejecutar SLAM:
+```bash
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
+```
+Salen errores de TF timestamp... pero para computación no los necesitamos, por lo que los ignoramos y quitamos la visualización en RViz (a ver si así salen menos). También hay que poner un wait al robot entre episodios para que le dé tiempo a llegar el primer mapa y reconfigurar SLAM para que aunque no sea tan preciso mande el mapa cada menos tiempo y tener más información instantánea.
+
+Y recordar hacer todos los source:
+```bash
+source /opt/ros/humble/setup.bash
+source /ros2_ws/install/setup.bash
+source /home/$USER/create3_ws/install/setup.bash
+source turtlebot3_drlnav_ws/setup_drlnav.sh
+source turtlebot3_drlnav_ws/install/setup.bash
+```
+
+
+
 ```bash
 source /home/$USER/turtlebot3_drlnav_ws/install/setup.bash
 source /home/$USER/turtlebot3_drlnav_ws/setup_drlnav.sh 
@@ -121,7 +138,7 @@ ros2 run turtlebot3_drl gazebo_goals
 
 saving data for episode: 1, location: /home/javierac/turtlebot3_drlnav_ws/src/turtlebot3_drl/model/8130905e3c29/ddpg_0_stage_9
 
-<br> -->
+<br>
 <br>
 
 # Anexo I: toolbox *SLAM*, rama `humble_lifecycle` — ROS 2 Humble  

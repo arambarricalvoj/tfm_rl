@@ -17,7 +17,7 @@ GRAPH_AVERAGE_REWARD     = 10       # Average the reward graph over every N epis
 # ===================================================================== #
 
 # --- SIMULATION ENVIRONMENT SETTINGS ---
-REWARD_FUNCTION = "exploration"           # Defined in reward.py
+REWARD_FUNCTION = "A"           # Defined in reward.py
 EPISODE_TIMEOUT_SECONDS = 50    # Number of seconds after which episode timeout occurs
 
 TOPIC_SCAN = 'scan'
@@ -30,11 +30,9 @@ ARENA_WIDTH                 = 4.2   # meters
 SPEED_LINEAR_MAX            = 0.3   # m/s
 SPEED_ANGULAR_MAX           = 1.9   # rad/s
 
-LIDAR_DISTANCE_CAP          = 6     # meters, for white objects can go up to 12 m
+LIDAR_DISTANCE_CAP          = 6     # meters for black objects, for white objects can go up to 12 m
 THRESHOLD_COLLISION         = 0.19  # meters around lidar reading to consider a collision
 THREHSOLD_GOAL              = 0.20  # meters
-
-IG_SUCCESS_THRESHOLD = 20.0
 
 OBSTACLE_RADIUS             = 0.16  # meters
 MAX_NUMBER_OBSTACLES        = 6
@@ -68,11 +66,11 @@ REAL_THRESHOLD_GOAL         = 0.35  # meters, minimum distance to goal that coun
 # ===================================================================== #
 
 # DRL parameters
-REWARD_FUNCTION = "exploration"       # Defined in reward.py
+REWARD_FUNCTION = "A"       # Defined in reward.py
 ACTION_SIZE     = 2         # Not used for DQN, see DQN_ACTION_SIZE
 HIDDEN_SIZE     = 512       # Number of neurons in hidden layers
 
-BATCH_SIZE      = 128       # Number of samples per training batch
+BATCH_SIZE      = 128      # Number of samples per training batch
 BUFFER_SIZE     = 1000000   # Number of samples stored in replay buffer before FIFO
 DISCOUNT_FACTOR = 0.99
 LEARNING_RATE   = 0.003

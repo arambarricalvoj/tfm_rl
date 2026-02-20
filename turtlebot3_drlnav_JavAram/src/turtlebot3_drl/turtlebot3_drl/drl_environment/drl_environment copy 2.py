@@ -39,8 +39,14 @@ from ..common.settings import ENABLE_BACKWARD, EPISODE_TIMEOUT_SECONDS, ENABLE_M
                                 TOPIC_SCAN, TOPIC_VELO, TOPIC_ODOM, ARENA_LENGTH, ARENA_WIDTH, MAX_NUMBER_OBSTACLES, OBSTACLE_RADIUS, LIDAR_DISTANCE_CAP, \
                                     SPEED_LINEAR_MAX, SPEED_ANGULAR_MAX, THRESHOLD_COLLISION, THREHSOLD_GOAL, ENABLE_DYNAMIC_GOALS
 
-from nav_msgs.msg import OccupancyGrid
-import numpy as np
+from turtlebot3_drl.drl_environment.aux.reset_core import reset_simulation, delete_entity, spawn_entity
+from turtlebot3_drl.drl_environment.aux.goal_generation import generate_dynamic_goal_pose
+from turtlebot3_drl.drl_environment.aux.obstacles import get_obstacle_coordinates
+
+from std_srvs.srv import Empty
+from gazebo_msgs.srv import DeleteEntity, SpawnEntity
+
+import os
 
 # Automatically retrievew from Gazebo model configuration (40 by default).
 # Can be set manually if needed.
@@ -59,7 +65,7 @@ class DRLEnvironment(Node):
         self.scan_topic = TOPIC_SCAN #Define scan topic from settings.py
         self.velo_topic = TOPIC_VELO #Define velocity command topic from settings.py
         self.odom_topic = TOPIC_ODOM #Define odometry topic from settings.py
-        self.goal_topic = 'goal_pose'
+        # self.goal_topic = 'goal_pose'
 
         # Initialize variables, goal and robot position
         self.goal_x, self.goal_y = 0.0, 0.0
@@ -80,10 +86,10 @@ class DRLEnvironment(Node):
         self.obstacle_distances = [Infinity] * MAX_NUMBER_OBSTACLES
 
         # Initialize goal variables
-        self.new_goal = False
-        self.goal_angle = 0.0
-        self.goal_distance = MAX_GOAL_DISTANCE
-        self.initial_distance_to_goal = MAX_GOAL_DISTANCE
+        # self.new_goal = False
+        # self.goal_angle = 0.0
+        # self.goal_distance = MAX_GOAL_DISTANCE
+        # self.initial_distance_to_goal = MAX_GOAL_DISTANCE
 
         # Initialize LiDAR scan ranges from settings.py
         self.scan_ranges = [LIDAR_DISTANCE_CAP] * NUM_SCAN_SAMPLES
@@ -103,52 +109,69 @@ class DRLEnvironment(Node):
         # publishers
         self.cmd_vel_pub = self.create_publisher(Twist, self.velo_topic, qos)
         # subscribers
-        self.goal_pose_sub = self.create_subscription(Pose, self.goal_topic, self.goal_pose_callback, qos)
+        # self.goal_pose_sub = self.create_subscription(Pose, self.goal_topic, self.goal_pose_callback, qos)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, qos)
         self.scan_sub = self.create_subscription(LaserScan, self.scan_topic, self.scan_callback, qos_profile=qos_profile_sensor_data)
         self.clock_sub = self.create_subscription(Clock, '/clock', self.clock_callback, qos_profile=qos_clock)
         self.obstacle_odom_sub = self.create_subscription(Odometry, 'obstacle/odom', self.obstacle_odom_callback, qos)
         # clients
-        self.task_succeed_client = self.create_client(RingGoal, 'task_succeed')
-        self.task_fail_client = self.create_client(RingGoal, 'task_fail')
+        # self.task_succeed_client = self.create_client(RingGoal, 'task_succeed')
+        # self.task_fail_client = self.create_client(RingGoal, 'task_fail')
         # servers
         self.step_comm_server = self.create_service(DrlStep, 'step_comm', self.step_comm_callback)
-        self.goal_comm_server = self.create_service(Goal, 'goal_comm', self.goal_comm_callback)
+        # self.goal_comm_server = self.create_service(Goal, 'goal_comm', self.goal_comm_callback)
 
-        self.subscription = self.create_subscription(
-            OccupancyGrid,
-            '/map',
-            self.map_callback,
-            10
+        # AUX
+        self.obstacle_coordinates = get_obstacle_coordinates()
+        
+        from ament_index_python.packages import get_package_share_directory
+        import os
+
+        # === Cargar modelo del goal ===
+        gazebo_pkg = get_package_share_directory('turtlebot3_gazebo')
+
+        self.entity_path = os.path.join(
+            gazebo_pkg,
+            'models',
+            'turtlebot3_drl_world',
+            'goal_box',
+            'model.sdf'
         )
-    
-    
+
+        with open(self.entity_path, 'r') as f:
+            self.entity = f.read()
+
+        self.entity_name = 'goal'
+
+        # Posición inicial del goal
+        self.goal_x = 0.5
+        self.goal_y = 0.0
+
+        # === Clientes ROS2 necesarios ===
+        self.delete_entity_client = self.create_client(DeleteEntity, '/delete_entity')
+        self.spawn_entity_client  = self.create_client(SpawnEntity, '/spawn_entity')
+        self.reset_world_client   = self.create_client(Empty, '/reset_world')
+
+        # === Obstáculos (igual que en gazebo_goals.py) ===
+        self.obstacle_coordinates = self.get_obstacle_coordinates()
+
+
     """*******************************************************************************
     ** Callback functions and relevant functions
     *******************************************************************************"""
-    def map_callback(self, msg: OccupancyGrid):
-        # Convertimos la data a un array numpy
-        map_data = np.array(msg.data)
-        # Contamos celdas conocidas (diferentes de -1)
-        known_cells = np.sum(map_data != -1)
-        total_cells = map_data.size
-        coverage = known_cells / total_cells * 100
-
-        self.get_logger().info(
-            f"Mapa recibido: {msg.header.stamp.sec}.{msg.header.stamp.nanosec} | "
-            f"Celdas conocidas: {known_cells}/{total_cells} ({coverage:.2f}%)")
-    
     # Active everytime goal_pose topic receives a msg and updates goal position
-    def goal_pose_callback(self, msg):
+    """def goal_pose_callback(self, msg):
         self.goal_x = msg.position.x
         self.goal_y = msg.position.y
         self.new_goal = True
         print(f"new goal! x: {self.goal_x} y: {self.goal_y}")
+    """
 
     # Active when called goal_comm service
-    def goal_comm_callback(self, request, response):
+    """def goal_comm_callback(self, request, response):
         response.new_goal = self.new_goal
         return response
+    """
     
     # Active everytime obstacle odom topic receives a msg and updates obstacle positions
     def obstacle_odom_callback(self, msg):
@@ -223,7 +246,7 @@ class DRLEnvironment(Node):
         self.clock_msgs_skipped = 0
 
     # Stop the robot and reset the environment. Not sure if this is working properly.
-    def stop_reset_robot(self, success):
+    """def stop_reset_robot(self, success):
         self.cmd_vel_pub.publish(Twist()) # stop robot
         self.episode_deadline = Infinity
         self.done = True
@@ -241,47 +264,50 @@ class DRLEnvironment(Node):
             while not self.task_fail_client.wait_for_service(timeout_sec=1.0):
                 self.get_logger().info('fail service not available, waiting again...')
             self.task_fail_client.call_async(req)
+        time.sleep(0.5)"""
+    
+    def stop_reset_robot(self, success):
+        # Detener robot
+        self.cmd_vel_pub.publish(Twist())
+        self.episode_deadline = Infinity
+        self.done = True
+        # Ajustar dificultad
+        if success:
+            self.difficulty_radius *= 1.01
+        else:
+            self.difficulty_radius *= 0.99
+        # Resetear simulación
+        reset_simulation(self)
+        # Generar nueva posición dinámica (solo si usas obstáculos dinámicos)
+        if ENABLE_DYNAMIC_GOALS:
+            new_goal = generate_dynamic_goal_pose(
+                self.robot_x,
+                self.robot_y,
+                numpy.clip(self.difficulty_radius, 0.5, 4),
+                self.obstacle_coordinates,
+                ARENA_LENGTH,
+                ARENA_WIDTH
+            )
+            if new_goal is not None:
+                self.goal_x, self.goal_y = new_goal
         time.sleep(0.5)
+
     # Define the state with the current values of things. Important function.
     def get_state(self, action_linear_previous, action_angular_previous):
         #print("*****************OBSTACLE DISTANCE************: ", self.obstacle_distance)
         #print("*****************THRESHOLD_COLLISION************: ", THRESHOLD_COLLISION)
-        # Debugging time outputs
-        #ahora_ROS = self.get_clock().now()      # Tiempo ROS2 (builtin_interfaces/Time)
-        #ahora_time =  time.time()            # Tiempo sistema operativo (float, segundos)
-        #print(f"Tiempo ROS2 STATE: {ahora_ROS}  Tiempo SO STATE: {ahora_time}")    
-
         state = copy.deepcopy(self.scan_ranges)                                             # range: [ 0, 1]
-        state.append(float(numpy.clip((self.goal_distance / MAX_GOAL_DISTANCE), 0, 1)))     # range: [ 0, 1]
-        state.append(float(self.goal_angle) / math.pi)                                      # range: [-1, 1]
+        # state.append(float(numpy.clip((self.goal_distance / MAX_GOAL_DISTANCE), 0, 1)))     # range: [ 0, 1]
+        # state.append(float(self.goal_angle) / math.pi)                                      # range: [-1, 1]
         state.append(float(action_linear_previous))                                         # range: [-1, 1]
         state.append(float(action_angular_previous))                                        # range: [-1, 1]
         self.local_step += 1
-        ''' 
-        print("\n====== STATE DEBUG ======")
-        SCAN_INDEX = NUM_SCAN_SAMPLES // 2;
-        # Mostrar solo un valor del scan
-        print(f"scan_ranges[{SCAN_INDEX}] (único mostrado) = {self.scan_ranges[SCAN_INDEX]}")
 
-        # Índices importantes dentro del state final
-        goal_distance_norm = len(self.scan_ranges)
-        goal_angle_norm    = len(self.scan_ranges) + 1
-        prev_linear        = len(self.scan_ranges) + 2
-        prev_angular       = len(self.scan_ranges) + 3
-
-        print(f"Goal distance normalizado  (state[{goal_distance_norm}]) = {state[goal_distance_norm]}")
-        print(f"Goal angle normalizado     (state[{goal_angle_norm}])    = {state[goal_angle_norm]}")
-        print(f"Acción lineal previa       (state[{prev_linear}])        = {state[prev_linear]}")
-        print(f"Acción angular previa      (state[{prev_angular}])       = {state[prev_angular]}")
-
-        print("================================\n")
-        #input("Pulsa ENTER para continuar...")
-        '''
         if self.local_step <= 30: # Grace period to wait for simulation reset
             return state
         # Success
-        if self.goal_distance < THREHSOLD_GOAL:
-            self.succeed = SUCCESS
+        #if self.goal_distance < THREHSOLD_GOAL:
+        #    self.succeed = SUCCESS
         # Collision
         elif self.obstacle_distance < THRESHOLD_COLLISION: # obstacle_distance is the minmum distance from LiDAR, if it is below threshold, collision happened
             dynamic_collision = False
@@ -313,10 +339,6 @@ class DRLEnvironment(Node):
     
     # Active when other node calls step_comm service. Defines how an step is taken in the environment.
     def step_comm_callback(self, request, response):
-        # Debugging time outputs
-        #ahora_ROS = self.get_clock().now()      # Tiempo ROS2 (builtin_interfaces/Time)
-        #ahora_time =  time.time()            # Tiempo sistema operativo (float, segundos)
-        #print(f"Tiempo ROS2 ACTION: {ahora_ROS}  Tiempo SO ACTION: {ahora_time}")    
         if len(request.action) == 0: # If no action is provided, initialize episode
             return self.initalize_episode(response)
 
@@ -354,7 +376,7 @@ class DRLEnvironment(Node):
             self.done = False
             self.reset_deadline = True
         if self.local_step % 200 == 0: # Log every 200 steps, print useful info in console
-            print(f"Rtot: {response.reward:<8.2f}GD: {self.goal_distance:<8.2f}GA: {math.degrees(self.goal_angle):.1f}°\t", end='')
+            # print(f"Rtot: {response.reward:<8.2f}GD: {self.goal_distance:<8.2f}GA: {math.degrees(self.goal_angle):.1f}°\t", end='')
             print(f"MinD: {self.obstacle_distance:<8.2f}Alin: {request.action[LINEAR]:<7.1f}Aturn: {request.action[ANGULAR]:<7.1f}")
         return response
 
