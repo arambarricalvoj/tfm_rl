@@ -67,7 +67,7 @@ ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py
 
 Segunda terminal:
 ```bash
-ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True slam_params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
 ```
 La gestión del ciclo de vida (*lifecycle*) de la toolbox de *SLAM* se explica en el Anexo I, junto con la instalación manual de la versión correspondiente de la toolbox.
 
@@ -91,9 +91,13 @@ Tras haber movido el robot con con el teclado y haber generado un mapa, se puede
 # 4. DRL (turtlebot3)
 Falta de documentar bien esta sección, solo he añadido la quinta terminal, que estando en ``create3_ws/`` hay que ejecutar SLAM:
 ```bash
-ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True slam_params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
 ```
 Salen errores de TF timestamp... pero para computación no los necesitamos, por lo que los ignoramos y quitamos la visualización en RViz (a ver si así salen menos). También hay que poner un wait al robot entre episodios para que le dé tiempo a llegar el primer mapa y reconfigurar SLAM para que aunque no sea tan preciso mande el mapa cada menos tiempo y tener más información instantánea.
+
+Lo he solucionado corrigiendo el nombre del parámetro que hay que pasar a la toolbox: antes estaba puesto ``params_file:=`` que no existía y por tanto, cargaba la configuración por defecto, el nombre del parámetro es: ``slam_params_file:=``. 
+
+Además, en el fichero de parámetros he puesto ``transform_publish_period: 0.0`` y ya no publica TF y por tanto no salen esos errores. No se ve la visualización en RViz, pero no hace falta, además que lo único que interesa es el mapa, no el TF. Tampoco se podrá hacer navegación ni localización global, pero creo que lo único que necesitamos es la señal del mapa para el DRL.
 
 Y recordar hacer todos los source:
 ```bash
