@@ -1,4 +1,5 @@
 from ..common.settings import REWARD_FUNCTION, COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE, SUCCESS, TIMEOUT, RESULTS_NUM
+import math
 
 goal_dist_initial = 0
 
@@ -26,14 +27,52 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
         # [-2 * (3^2), 0]
         r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2) # Penalize going Velocities different than max robot velocity
 
-        reward = (r_yaw + r_distance + r_obstacle + r_vangular+ r_vlinear - 10)/10000 # Added -1 as a time penalty
+        reward = (r_yaw + r_distance + r_obstacle + r_vangular+ r_vlinear - 10)/1000 # Added -1 as a time penalty
         #reward = (r_yaw + r_distance*10 + r_vangular - 10)/10000 # Added -1 as a time penalty
         #reward = (r_distance - 1)/1000 # Added -1 as a time penalty
         if succeed == SUCCESS:
-            reward += 20.0
+            reward += 2.0
         elif succeed == COLLISION_OBSTACLE or succeed == COLLISION_WALL or succeed == TIMEOUT:
-            reward -= 10.0
+            reward -= 1.0
         return float(reward)
+
+def get_reward_exploration(
+        succeed,
+        action_linear,
+        action_angular,
+        min_obstacle_dist,
+        entropy_prev,
+        entropy_current,
+        angle_to_entropy_region
+    ):
+
+    # Penaliza no mirar hacia la zona de mayor entropía
+    r_yaw = -1.0 * abs(angle_to_entropy_region)
+
+    # Recompensa reducir entropía (progreso de exploración)
+    r_progress = (entropy_prev - entropy_current)
+
+    #r_forward = action_linear * math.cos(angle_to_entropy_region)
+
+    # Penaliza velocidades angulares altas
+    r_vangular = -(action_angular ** 2)
+
+    # Penaliza desviarse de la velocidad lineal deseada
+    r_vlinear = -(((0.3 - action_linear) * 10) ** 2)
+
+    # Penaliza estar demasiado cerca de obstáculos
+    r_obstacle = -20 if min_obstacle_dist < 0.22 else 0
+
+    # Estructura original: suma + penalización temporal
+    reward = (r_yaw + r_progress + r_obstacle + r_vangular + r_vlinear - 10) / 1000
+
+    # Recompensas/penalizaciones por final de episodio
+    if succeed == SUCCESS:
+        reward += 2.0
+    elif succeed in [COLLISION_OBSTACLE, COLLISION_WALL, TIMEOUT]:
+        reward -= 1.0
+
+    return float(reward)
 
 # Define your own reward function by defining a new function: 'get_reward_X'
 # Replace X with your reward function name and configure it in settings.py

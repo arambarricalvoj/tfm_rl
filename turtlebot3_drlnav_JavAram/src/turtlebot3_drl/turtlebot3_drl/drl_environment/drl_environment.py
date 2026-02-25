@@ -121,23 +121,131 @@ class DRLEnvironment(Node):
             self.map_callback,
             10
         )
+
+        self.map_data = 0.0
+        self.coverage = 0.0
+        self.entropy_prev = 0.0
+        self.entropy_current = 0.0
+        self.sector_entropy = 0.0
+        self.angle_to_entropy_region = 0.0
     
     
     """*******************************************************************************
     ** Callback functions and relevant functions
     *******************************************************************************"""
-    def map_callback(self, msg: OccupancyGrid):
+    def compute_entropy_and_angle(self, robot_x, robot_y, robot_yaw, resolution, num_sectors=36):
+        # --- 1. Convertir a probabilidad ---
+        p = np.zeros_like(self.map_data, dtype=float)
+        p[self.map_data == -1] = 0.5
+        p[self.map_data == 0] = 0.0
+        p[self.map_data == 100] = 1.0
+
+        eps = 1e-9
+        p = np.clip(p, eps, 1 - eps)
+
+        # --- 2. Entropía por celda ---
+        H = -(p * np.log(p) + (1 - p) * np.log(1 - p))
+        entropy_global = np.mean(H)
+
+        # --- 3. Preparar sectores ---
+        angles = np.linspace(-math.pi, math.pi, num_sectors + 1)
+        sector_entropy = np.zeros(num_sectors)
+
+        # --- 4. Calcular ángulo de cada celda respecto al robot ---
+        height, width = self.map_data.shape
+        xs = np.arange(width)
+        ys = np.arange(height)
+        grid_x, grid_y = np.meshgrid(xs, ys)
+
+        dx = (grid_x - robot_x) * resolution
+        dy = (grid_y - robot_y) * resolution
+
+        cell_angles = np.arctan2(dy, dx)
+
+        # --- 5. Entropía por sector ---
+        for i in range(num_sectors):
+            mask = (cell_angles >= angles[i]) & (cell_angles < angles[i+1])
+            if np.any(mask):
+                sector_entropy[i] = np.mean(H[mask])
+            else:
+                sector_entropy[i] = 0.0
+
+        # --- 6. Sector con mayor entropía ---
+        best_sector = np.argmax(sector_entropy)
+        angle_to_entropy_region = (angles[best_sector] + angles[best_sector+1]) / 2.0
+
+        # --- 7. Convertir a ángulo relativo al robot ---
+        angle_relative = angle_to_entropy_region - robot_yaw
+
+        # Normalizar a [-pi, pi]
+        angle_relative = (angle_relative + math.pi) % (2 * math.pi) - math.pi
+
+        return entropy_global, angle_relative, sector_entropy
+
+
+
+
+    """def map_callback(self, msg: OccupancyGrid):
         # Convertimos la data a un array numpy
         map_data = np.array(msg.data)
         # Contamos celdas conocidas (diferentes de -1)
         known_cells = np.sum(map_data != -1)
         total_cells = map_data.size
-        coverage = known_cells / total_cells * 100
+        self.coverage = known_cells / total_cells * 100
+        # Entropía
+        entropy = self.compute_entropy(map_data)
+        self.entropy_prev = self.entropy_current
+        self.entropy_current = entropy
 
         self.get_logger().info(
             f"Mapa recibido: {msg.header.stamp.sec}.{msg.header.stamp.nanosec} | "
-            f"Celdas conocidas: {known_cells}/{total_cells} ({coverage:.2f}%)")
-    
+            f"Celdas conocidas: {known_cells}/{total_cells} ({self.coverage:.2f}%)")"""
+        
+    def map_callback(self, msg: OccupancyGrid):
+        # Convertir el mapa a matriz 2D
+        self.map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
+
+        # Cobertura
+        known_cells = np.sum(self.map_data != -1)
+        total_cells = self.map_data.size
+        self.coverage = known_cells / total_cells * 100
+
+        # Obtener pose del robot en coordenadas del mundo
+        robot_x_world = self.robot_x
+        robot_y_world = self.robot_y
+
+        # Convertir pose del robot a índices del mapa
+        robot_x = int((robot_x_world - msg.info.origin.position.x) / msg.info.resolution)
+        robot_y = int((robot_y_world - msg.info.origin.position.y) / msg.info.resolution)
+
+        # Evitar índices fuera de rango
+        if not (0 <= robot_x < msg.info.width and 0 <= robot_y < msg.info.height):
+            self.get_logger().warn("Robot fuera de los límites del mapa, no se calcula entropía por sectores.")
+            return
+
+        # Entropía global + ángulo hacia región más incierta
+        entropy_global, angle_entropy, self.sector_entropy = self.compute_entropy_and_angle(
+            self.robot_x,
+            self.robot_y,
+            self.robot_heading,
+            msg.info.resolution
+        )
+
+
+        # Actualizar entropías
+        self.entropy_prev = self.entropy_current
+        self.entropy_current = entropy_global
+
+        # Guardar ángulo para el reward
+        self.angle_to_entropy_region = angle_entropy
+
+        # Log opcional
+        self.get_logger().info(
+            f"Mapa recibido | Cobertura: {self.coverage:.2f}% | "
+            f"Entropía: {entropy_global:.4f} | "
+            f"Ángulo hacia región informativa: {math.degrees(angle_entropy):.1f}°"
+        )
+
     # Active everytime goal_pose topic receives a msg and updates goal position
     def goal_pose_callback(self, msg):
         self.goal_x = msg.position.x
@@ -241,6 +349,7 @@ class DRLEnvironment(Node):
             while not self.task_fail_client.wait_for_service(timeout_sec=1.0):
                 self.get_logger().info('fail service not available, waiting again...')
             self.task_fail_client.call_async(req)
+        self.get_logger().info('Entorno reiniciado.')
         time.sleep(0.5)
     # Define the state with the current values of things. Important function.
     def get_state(self, action_linear_previous, action_angular_previous):
@@ -256,6 +365,34 @@ class DRLEnvironment(Node):
         state.append(float(self.goal_angle) / math.pi)                                      # range: [-1, 1]
         state.append(float(action_linear_previous))                                         # range: [-1, 1]
         state.append(float(action_angular_previous))                                        # range: [-1, 1]
+        
+        # --- Añadir entropía y ángulo ---
+        state.append(float(self.entropy_current))
+        state.extend(self.sector_entropy.tolist())
+        # state.append(float(self.angle_to_entropy_region))
+
+        # --- Añadir mapa aplanado ---
+        # Redimensionar a 120x120
+        # --- Añadir mapa aplanado (120x120) sin cv2 ---
+
+        # self.map_data es 2D: shape = (map_height, map_width)
+        old_h, old_w = self.map_data.shape
+        new_h, new_w = 120, 120
+
+        # Índices de muestreo (nearest-neighbor)
+        y_idx = (np.linspace(0, old_h - 1, new_h)).astype(int)
+        x_idx = (np.linspace(0, old_w - 1, new_w)).astype(int)
+
+        # Redimensionado discreto
+        map_fixed = self.map_data[y_idx][:, x_idx]
+
+        # Añadir al estado
+        map_fixed = map_fixed.astype(np.float32)
+        state.extend(map_fixed.flatten().tolist())
+
+        #state.extend(self.map_data.tolist())
+        
+
         self.local_step += 1
         ''' 
         print("\n====== STATE DEBUG ======")
@@ -340,8 +477,16 @@ class DRLEnvironment(Node):
         # Prepare repsonse to send back to the caller
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR]) # Get state with the actions using get_state function
         # Get reward using the reward function defined in reward.py
-        response.reward = float(rw.get_reward(self.succeed, action_linear, action_angular, self.goal_distance,
-                                            self.goal_angle, self.obstacle_distance))
+        response.reward = float(rw.get_reward_exploration(
+            self.succeed,
+            action_linear,
+            action_angular,
+            self.obstacle_distance,
+            self.entropy_prev,
+            self.entropy_current,
+            self.angle_to_entropy_region
+        ))
+
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0 # Will be updated at the end of episode

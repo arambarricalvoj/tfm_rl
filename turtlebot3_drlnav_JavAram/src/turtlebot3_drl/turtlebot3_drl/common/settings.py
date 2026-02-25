@@ -17,7 +17,7 @@ GRAPH_AVERAGE_REWARD     = 10       # Average the reward graph over every N epis
 # ===================================================================== #
 
 # --- SIMULATION ENVIRONMENT SETTINGS ---
-REWARD_FUNCTION = "A"           # Defined in reward.py
+REWARD_FUNCTION = "exploration"           # Defined in reward.py
 EPISODE_TIMEOUT_SECONDS = 50    # Number of seconds after which episode timeout occurs
 
 TOPIC_SCAN = 'scan'
@@ -66,7 +66,7 @@ REAL_THRESHOLD_GOAL         = 0.35  # meters, minimum distance to goal that coun
 # ===================================================================== #
 
 # DRL parameters
-REWARD_FUNCTION = "A"       # Defined in reward.py
+REWARD_FUNCTION = "exploration"       # Defined in reward.py
 ACTION_SIZE     = 2         # Not used for DQN, see DQN_ACTION_SIZE
 HIDDEN_SIZE     = 512       # Number of neurons in hidden layers
 

@@ -31,7 +31,8 @@ class OffPolicyAgent(ABC):
         self.simulation_speed   = simulation_speed
 
         # Network structure
-        self.state_size         = NUM_SCAN_SAMPLES + 4
+        self.state_size         = NUM_SCAN_SAMPLES + 4 + 1 + 36 + 1 + 120*120 - 1
+        # state_size =    NUM_SCAN_SAMPLES  + 4  + 1  + num_sectors  + 1  + (map_width * map_height)
         self.action_size        = ACTION_SIZE
         self.hidden_size        = HIDDEN_SIZE
         self.input_size         = self.state_size

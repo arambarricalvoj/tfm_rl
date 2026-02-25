@@ -198,7 +198,7 @@ Estado inicial: ``unconfigured``
 ## Gestión del ciclo de vida
 Cuando se ejecuta (segunda terminal):
 ```bash
-ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True slam_params_file:=src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
 ```
 
 El nodo de la toolbox se configura y activate automáticamente, por lo que está funcionando como en la versión sin *lifecycle*.

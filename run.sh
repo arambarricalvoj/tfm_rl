@@ -7,7 +7,6 @@ docker run -e DISPLAY=$DISPLAY \
            -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
            -v ./create3_sim_JavAram/create3_ws/:/home/$USER/create3_ws/ \
            -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_ws/ \
-           -v ./slam_toolbox:/home/$USER/slam_toolbox/ \
            -it \
            --rm \
            --gpus all \
@@ -16,3 +15,4 @@ docker run -e DISPLAY=$DISPLAY \
            arambarricalvoj/tfm_rl:slam_toolbox_lifecycle
            #tfm_rl:slam_toolbox_lifecycle
            # tfm_rl:latest
+           # -v ./slam_toolbox:/home/$USER/slam_toolbox/ \

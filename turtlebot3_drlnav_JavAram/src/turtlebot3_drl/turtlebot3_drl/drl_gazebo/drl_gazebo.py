@@ -78,14 +78,14 @@ class DRLGazebo(Node):
         ** Initialise ROS publishers, subscribers and clients
         ************************************************************"""
         # Initialise publishers
-        self.goal_pose_pub = self.create_publisher(Pose, 'goal_pose', QoSProfile(depth=10))
+        # self.goal_pose_pub = self.create_publisher(Pose, 'goal_pose', QoSProfile(depth=10))
         self.cmd_vel_pub   = self.create_publisher(Twist, '/cmd_vel', 10)
 
         # Initialise client
         self.delete_entity_client       = self.create_client(DeleteEntity, 'delete_entity')
-        self.spawn_entity_client        = self.create_client(SpawnEntity, 'spawn_entity')
-        self.reset_simulation_client    = self.create_client(Empty, 'reset_simulation')
-        #self.reset_world_client         = self.create_client(Empty, '/reset_world')
+        # self.spawn_entity_client        = self.create_client(SpawnEntity, 'spawn_entity')
+        # self.reset_simulation_client    = self.create_client(Empty, 'reset_simulation')
+        self.reset_world_client         = self.create_client(Empty, '/reset_world')
         self.gazebo_pause               = self.create_client(Empty, '/pause_physics')
 
         # Initialise servers
@@ -148,8 +148,8 @@ class DRLGazebo(Node):
         goal_pose = Pose()
         goal_pose.position.x = self.goal_x
         goal_pose.position.y = self.goal_y
-        self.goal_pose_pub.publish(goal_pose)
-        self.spawn_entity()
+        # self.goal_pose_pub.publish(goal_pose)
+        # self.spawn_entity()
 
     def task_succeed_callback(self, request, response):
         self.delete_entity()
@@ -293,9 +293,9 @@ class DRLGazebo(Node):
 
         # 2. Resetear Gazebo
         req = Empty.Request()
-        while not self.reset_simulation_client.wait_for_service(timeout_sec=1.0):
+        while not self.reset_world_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
-        self.reset_simulation_client.call_async(req)
+        self.reset_world_client.call_async(req)
 
         # 3. Reiniciar SLAM Toolbox
         self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
@@ -331,7 +331,7 @@ class DRLGazebo(Node):
             self.get_logger().info('service not available, waiting again...')
         self.delete_entity_client.call_async(req)
 
-    def spawn_entity(self):
+    """def spawn_entity(self):
         goal_pose = Pose()
         goal_pose.position.x = self.goal_x
         goal_pose.position.y = self.goal_y
@@ -341,7 +341,7 @@ class DRLGazebo(Node):
         req.initial_pose = goal_pose
         while not self.spawn_entity_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
-        self.spawn_entity_client.call_async(req)
+        self.spawn_entity_client.call_async(req)"""
 
     def get_obstacle_coordinates(self):
         tree = ET.parse(os.getenv('DRLNAV_BASE_PATH') + '/src/turtlebot3_simulations/turtlebot3_gazebo/models/turtlebot3_drl_world/inner_walls/model.sdf')
