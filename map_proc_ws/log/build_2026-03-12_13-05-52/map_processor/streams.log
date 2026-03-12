@@ -1,0 +1,41 @@
+[0.677s] Invoking command in '/home/javierac/map_proc_ws/src/map_processor': PYTHONPATH=/home/javierac/map_proc_ws/build/map_processor/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/map_processor build --build-base /home/javierac/map_proc_ws/build/map_processor/build install --record /home/javierac/map_proc_ws/build/map_processor/install.log --single-version-externally-managed install_data
+[0.893s] running egg_info
+[0.893s] creating ../../build/map_processor/map_processor.egg-info
+[0.893s] writing ../../build/map_processor/map_processor.egg-info/PKG-INFO
+[0.894s] writing dependency_links to ../../build/map_processor/map_processor.egg-info/dependency_links.txt
+[0.894s] writing entry points to ../../build/map_processor/map_processor.egg-info/entry_points.txt
+[0.894s] writing requirements to ../../build/map_processor/map_processor.egg-info/requires.txt
+[0.894s] writing top-level names to ../../build/map_processor/map_processor.egg-info/top_level.txt
+[0.894s] writing manifest file '../../build/map_processor/map_processor.egg-info/SOURCES.txt'
+[0.895s] reading manifest file '../../build/map_processor/map_processor.egg-info/SOURCES.txt'
+[0.895s] adding license file 'LICENSE'
+[0.896s] writing manifest file '../../build/map_processor/map_processor.egg-info/SOURCES.txt'
+[0.896s] running build
+[0.896s] running build_py
+[0.896s] creating /home/javierac/map_proc_ws/build/map_processor/build
+[0.896s] creating /home/javierac/map_proc_ws/build/map_processor/build/lib
+[0.896s] creating /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor
+[0.896s] copying map_processor/__init__.py -> /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor
+[0.896s] copying map_processor/map_node.py -> /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor
+[0.896s] copying map_processor/map_processing_utils.py -> /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor
+[0.896s] running install
+[0.897s] running install_lib
+[0.897s] creating /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor
+[0.898s] copying /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor/__init__.py -> /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor
+[0.898s] copying /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor/map_node.py -> /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor
+[0.898s] copying /home/javierac/map_proc_ws/build/map_processor/build/lib/map_processor/map_processing_utils.py -> /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor
+[0.898s] byte-compiling /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__init__.py to __init__.cpython-310.pyc
+[0.898s] byte-compiling /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/map_node.py to map_node.cpython-310.pyc
+[0.899s] byte-compiling /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/map_processing_utils.py to map_processing_utils.cpython-310.pyc
+[0.899s] running install_data
+[0.899s] creating /home/javierac/map_proc_ws/install/map_processor/share/ament_index
+[0.899s] creating /home/javierac/map_proc_ws/install/map_processor/share/ament_index/resource_index
+[0.900s] creating /home/javierac/map_proc_ws/install/map_processor/share/ament_index/resource_index/packages
+[0.900s] copying resource/map_processor -> /home/javierac/map_proc_ws/install/map_processor/share/ament_index/resource_index/packages
+[0.900s] copying package.xml -> /home/javierac/map_proc_ws/install/map_processor/share/map_processor
+[0.900s] running install_egg_info
+[0.901s] Copying ../../build/map_processor/map_processor.egg-info to /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor-0.0.0-py3.10.egg-info
+[0.902s] running install_scripts
+[0.922s] Installing map_processor script to /home/javierac/map_proc_ws/install/map_processor/lib/map_processor
+[0.923s] writing list of installed files to '/home/javierac/map_proc_ws/build/map_processor/install.log'
+[0.944s] Invoked command in '/home/javierac/map_proc_ws/src/map_processor' returned '0': PYTHONPATH=/home/javierac/map_proc_ws/build/map_processor/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/map_processor build --build-base /home/javierac/map_proc_ws/build/map_processor/build install --record /home/javierac/map_proc_ws/build/map_processor/install.log --single-version-externally-managed install_data

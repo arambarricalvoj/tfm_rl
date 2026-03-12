@@ -337,47 +337,44 @@
   </xacro:if>
   
   <!-- LiDAR link and joint -->
-  <link name="lidar_link">
+<link name="laser">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.00915" rpy="0 0 0"/>
       <geometry>
-        <cylinder radius="0.03" length="0.07"/>
+        <cylinder radius="0.027" length="0.0413"/>
       </geometry>
-    <material name="lidar_color">
-      <color rgba="0.1 0.1 0.1 1.0"/>
-    </material>
+      <material name="sensor_color">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.00915" rpy="0 0 0"/>
       <geometry>
-        <cylinder radius="0.03" length="0.0"/>
+        <cylinder radius="0.027" length="0.0413"/>
       </geometry>
     </collision>
-    <inertial>
-      <mass value="0.1"/>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0.0" ixz="0.0" iyz="0.0"/>
-    </inertial>
   </link>
 
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/>
-    <child link="lidar_link"/>
-    <origin xyz="0 0 ${0.13 + base_link_z_offset}" rpy="0 0 0"/>
+    <child link="laser"/>
+    <origin xyz="0 0 0.1282" rpy="0 0 0"/>     <!-- 0.1282= 0.0934 (altura robot)+0.005(placa impresora 3D) + 0.0298 (altura sensor)-->
   </joint>
+
+
   
-   <!-- Using  -->
+   <!-- LIDAR CONFIGURATION  -->
    <xacro:if value="${'$(arg gazebo)' == 'classic'}">
-    <gazebo reference="lidar_link">
+    <gazebo reference="laser">
         <material>Gazebo/Red</material>
         <sensor name="laser" type="ray">
             <pose> 0 0 0 0 0 0 </pose>
-            <visualize>true</visualize>
+            <visualize>false</visualize>
             <update_rate>10</update_rate>
             <ray>
                 <scan>
                     <horizontal>
-                        <samples>40</samples>
+                        <samples>500</samples>
                         <!--<samples>500</samples>-->
                         <min_angle>0</min_angle>
                         <max_angle>360</max_angle>
@@ -386,14 +383,20 @@
                 <range>
                     <min>0.05</min>
                     <max>6</max>
+                    <resolution>0.015</resolution>
                 </range>
+                <noise>
+                  <type>gaussian</type>
+                  <mean>0.0</mean>
+                  <stddev>0.01</stddev> 
+                </noise>
             </ray>
             <plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">
                 <ros>
                     <argument>~/out:=scan</argument>
                 </ros>
                 <output_type>sensor_msgs/LaserScan</output_type>
-                <frame_name>lidar_link</frame_name>
+                <frame_name>laser</frame_name>
             </plugin>
         </sensor>
     </gazebo>

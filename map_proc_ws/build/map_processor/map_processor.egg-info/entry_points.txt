@@ -1,0 +1,3 @@
+[console_scripts]
+map_processor = map_processor.map_node:main
+
