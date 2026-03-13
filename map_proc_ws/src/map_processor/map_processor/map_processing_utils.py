@@ -51,9 +51,18 @@ class MapProcessor:
         self.occupied_bbox_size: Optional[Tuple[int, int]] = None
         self.explored_bbox_size: Optional[Tuple[int, int]] = None
 
+        self.prob_explored_bbox: Optional[Tuple[int, int, int, int]] = None
+        self.prob_explored_bbox_size: Optional[Tuple[int, int]] = (24, 24)
+
+        self.prob_neighborhood_scale = 1.0   # factor para ampliar la vecindad base
+        self.prob_kernel_type = "uniform"    # "uniform" o "gaussian"
+        self.prob_kernel = None              # si no es None, usar kernel 2D personalizado (se normaliza)
+        self.prob_return_uint8 = False       # si True devuelve 0..255 uint8, si False devuelve float 0..1
+
+
         # ---------- Local Egocentric Map ----------
         # tamaño deseado de la LEM en celdas (H, W). Por defecto 24x24.
-        self.lem_size: Tuple[int, int] = (24, 24)
+        self.lem_size: Tuple[int, int] = (50, 50)
         # almacenamiento de la LEM (numpy array HxW uint8 con valores 0,128,255) o None
         self.lem_map: Optional[np.ndarray] = None
         self.lem_mark_agent: bool = False
@@ -185,6 +194,12 @@ class MapProcessor:
             gem[sub != UNKNOWN] = 255
             self.explored_map = gem
 
+        self.compute_prob_explored_map(out_size=self.prob_explored_bbox_size,
+                                   neighborhood_scale=self.prob_neighborhood_scale,
+                                   kernel=None,
+                                   kernel_type=self.prob_kernel_type,
+                                   return_uint8=False)
+
         # Generar LEM automáticamente si hay pose del robot
         try:
             if self.robot_pose is not None:
@@ -280,6 +295,153 @@ class MapProcessor:
         if self.lem_map is None and generate_if_missing:
             return self.generate_lem(pad=pad)
         return None if self.lem_map is None else self.lem_map.copy()
+
+
+    # Método para computar y almacenar el mapa reducido de probabilidades
+    def compute_prob_explored_map(self,
+                                out_size: tuple | None = None,
+                                neighborhood_scale: float | None = None,
+                                kernel: np.ndarray | None = None,
+                                kernel_type: str | None = None,
+                                return_uint8: bool | None = None):
+        """
+        Calcula y guarda self.prob_explored_map_reduced y self.prob_explored_bbox.
+        - out_size: (H_out, W_out). Si None usa self.prob_explored_bbox_size.
+        - neighborhood_scale: factor multiplicador del tamaño base de vecindad.
+        - kernel: kernel 2D personalizado (se normaliza). Si None se genera según kernel_type.
+        - kernel_type: "uniform" o "gaussian".
+        - return_uint8: si True guarda en 0..255 uint8, si False en float 0..1.
+        Retorna el mapa reducido (H_out, W_out).
+        """
+        # parámetros por defecto desde atributos
+        if out_size is None:
+            out_size = self.prob_explored_bbox_size
+        if neighborhood_scale is None:
+            neighborhood_scale = self.prob_neighborhood_scale
+        if kernel_type is None:
+            kernel_type = self.prob_kernel_type
+        if kernel is None:
+            kernel = self.prob_kernel
+        if return_uint8 is None:
+            return_uint8 = self.prob_return_uint8
+
+        if getattr(self, "map_data", None) is None:
+            raise RuntimeError("map_data no disponible")
+
+        H_in, W_in = self.map_data.shape
+        H_out, W_out = out_size
+
+        # máscara unknown: 1 si unknown (-1), 0 si conocido (0 o >=50)
+        unknown_mask = (self.map_data == -1).astype(np.float32)
+
+        # escala por celda reducida (celdas originales por celda reducida)
+        scale_r = H_in / float(H_out)
+        scale_c = W_in / float(W_out)
+        # tamaño representativo (media simple)
+        scale = max(1.0, 0.5 * (scale_r + scale_c))
+
+        # tamaño base de vecindad en celdas (al menos 1)
+        base_size = max(1, int(np.ceil(scale)))
+        ksize = max(1, int(np.ceil(base_size * neighborhood_scale)))
+        if ksize % 2 == 0:
+            ksize += 1
+
+        # construir kernel si no se pasa uno
+        if kernel is None:
+            if kernel_type == "uniform":
+                kernel_local = np.ones((ksize, ksize), dtype=np.float32)
+            elif kernel_type == "gaussian":
+                sigma = max(0.5, ksize / 6.0)
+                ax = np.linspace(-(ksize // 2), ksize // 2, ksize)
+                xx, yy = np.meshgrid(ax, ax)
+                kernel_local = np.exp(-(xx**2 + yy**2) / (2.0 * sigma**2)).astype(np.float32)
+            else:
+                raise ValueError(f"kernel_type desconocido: {kernel_type}")
+        else:
+            kernel_local = np.array(kernel, dtype=np.float32)
+            kh, kw = kernel_local.shape
+            if kh % 2 == 0 or kw % 2 == 0:
+                pad_h = 1 if kh % 2 == 0 else 0
+                pad_w = 1 if kw % 2 == 0 else 0
+                kernel_local = np.pad(kernel_local, ((0,pad_h),(0,pad_w)), mode='constant', constant_values=0)
+
+        # normalizar kernel
+        s = kernel_local.sum()
+        if s <= 0:
+            kernel_local = np.ones_like(kernel_local, dtype=np.float32)
+            s = kernel_local.sum()
+        kernel_local = kernel_local / s
+
+        # intentar usar scipy para convolución; si no, usar convolución simple (menos eficiente)
+        try:
+            from scipy.signal import convolve2d
+            conv = convolve2d(unknown_mask, kernel_local, mode='same', boundary='fill', fillvalue=0)
+        except Exception:
+            # convolución manual por FFT sería mejor, pero implementamos un método directo para kernels pequeños
+            kh, kw = kernel_local.shape
+            pad_h = kh // 2
+            pad_w = kw // 2
+            padded = np.pad(unknown_mask, ((pad_h, pad_h), (pad_w, pad_w)), mode='constant', constant_values=0)
+            conv = np.zeros_like(unknown_mask, dtype=np.float32)
+            for r in range(H_in):
+                r0 = r
+                r1 = r + kh
+                for c in range(W_in):
+                    c0 = c
+                    c1 = c + kw
+                    window = padded[r0:r1, c0:c1]
+                    conv[r, c] = float((window * kernel_local).sum())
+
+        # ahora agregamos conv en bloques para reducir a out_size
+        out = np.zeros((H_out, W_out), dtype=np.float32)
+        for i in range(H_out):
+            r0 = int(np.floor(i * scale_r))
+            r1 = int(np.floor((i + 1) * scale_r))
+            if r1 <= r0:
+                r1 = r0 + 1
+            r1 = min(H_in, r1)
+            for j in range(W_out):
+                c0 = int(np.floor(j * scale_c))
+                c1 = int(np.floor((j + 1) * scale_c))
+                if c1 <= c0:
+                    c1 = c0 + 1
+                c1 = min(W_in, c1)
+                block = conv[r0:r1, c0:c1]
+                if block.size == 0:
+                    out[i, j] = 0.0
+                else:
+                    out[i, j] = float(block.mean())
+
+        out = np.clip(out, 0.0, 1.0)
+
+        # guardar bbox y mapa reducido en la instancia
+        # prob_explored_bbox: si quieres limitar a una subregión, puedes calcular r0,c0,r1,c1; por defecto usamos todo el mapa
+        self.prob_explored_bbox = (0, 0, H_in - 1, W_in - 1)
+        self.prob_explored_map_reduced = (out * 255.0).astype(np.uint8) if return_uint8 else out
+        self.prob_explored_bbox_size = (H_out, W_out)
+        self.prob_neighborhood_scale = neighborhood_scale
+        self.prob_kernel_type = kernel_type
+        self.prob_kernel = kernel_local
+
+        return self.prob_explored_map_reduced
+
+    # Método getter que devuelve copia del mapa reducido (24x24)
+    def get_prob_explored_map_copy(self, as_uint8: bool | None = None):
+        """
+        Devuelve una copia del mapa reducido (self.prob_explored_map_reduced).
+        Si no existe, lo calcula con compute_prob_explored_map().
+        """
+        if as_uint8 is None:
+            as_uint8 = self.prob_return_uint8
+        if not hasattr(self, "prob_explored_map_reduced"):
+            self.compute_prob_explored_map(return_uint8=as_uint8)
+        out = self.prob_explored_map_reduced
+        if as_uint8 and out.dtype != np.uint8:
+            return (out * 255.0).astype(np.uint8).copy()
+        if (not as_uint8) and out.dtype == np.uint8:
+            return (out.astype(np.float32) / 255.0).copy()
+        return out.copy()
+
     
     def generate_lem(self, pad: int = 0) -> Optional[np.ndarray]:
         """
@@ -500,14 +662,9 @@ class MapProcessor:
             return None
         row, col = cell
         return int(self.map_data[row, col])
-    
-    # requiere al principio del archivo:
-    # import matplotlib.pyplot as plt
-    # import matplotlib.colors as mcolors
-    # import threading
 
-    # Métodos de plotting interactivo
-    def start_plot(self, figsize=(12, 4), title="Map / Explored / LEM"):
+    # Métodos de plotting interactivo actualizados
+    def start_plot(self, figsize=(12, 4), title="Map / ProbExplored / LEM"):
         if getattr(self, "_plot_started", False):
             return
         try:
@@ -515,29 +672,37 @@ class MapProcessor:
             self._fig, axs = plt.subplots(1, 3, figsize=figsize)
             self._axs = axs
             self._axs[0].set_title("Map (original)")
-            self._axs[1].set_title("Explored (known=255)")
+            self._axs[1].set_title("ProbExplored (reducido)")
             self._axs[2].set_title("LEM (egocentric)")
             self._robot_scatter = None
+            self._prob_robot_scatter = None
+
             # colormap para el mapa original (unknown=gray, free=white, occupied=black)
             cmap = mcolors.ListedColormap(['gray', 'white', 'black'])
             bounds = [-1, 0.5, 50, 101]
             self._norm = mcolors.BoundaryNorm(bounds, cmap.N)
             self._cmap = cmap
-            self._plot_started = True
+
+            # placeholders y estado para las imágenes
             self._im_list = [None, None, None]
+            self._prob_colorbar = None
+
             for ax in self._axs:
                 ax.set_xlabel('col')
                 ax.set_ylabel('row')
+
+            self._plot_started = True
         except Exception:
             self._plot_started = False
             raise
+
 
     def update_plot(self, draw=True):
         if not getattr(self, "_plot_started", False):
             return
 
         with self._plot_lock:
-            # --- Panel 0: mapa original ---
+            # ---------------- Panel 0: mapa original ----------------
             if self.map_data is None:
                 if self._im_list[0] is not None:
                     self._im_list[0].set_data(np.zeros((1, 1)))
@@ -551,33 +716,42 @@ class MapProcessor:
 
             if self._im_list[0] is None:
                 self._im_list[0] = self._axs[0].imshow(disp, cmap=self._cmap, norm=self._norm,
-                                                      origin='lower', interpolation='nearest')
+                                                    origin='lower', interpolation='nearest')
                 self._axs[0].set_xlim(-0.5, self.width - 0.5)
                 self._axs[0].set_ylim(-0.5, self.height - 0.5)
             else:
                 self._im_list[0].set_data(disp)
                 self._im_list[0].set_extent((-0.5, self.width - 0.5, -0.5, self.height - 0.5))
 
-            # --- Panel 1: explored_map (resized to lem_size for consistent display) ---
-            if self.explored_map is None:
-                explored_img = np.zeros(self.lem_size, dtype=np.uint8)
+            # ---------------- Panel 1: prob_explored_map reducido (heatmap) ----------------
+            try:
+                prob_map = self.get_prob_explored_map_copy(as_uint8=False)
+            except Exception:
+                prob_map = None
+
+            if prob_map is None:
+                prob_img = np.zeros(self.prob_explored_bbox_size, dtype=np.float32)
             else:
-                # si explored_map tiene distinto tamaño, redimensionar para mostrar con la misma escala que LEM
-                em = self.explored_map
-                #if em.shape != self.lem_size:
-                #    explored_img = self._resize_nearest_neighbor(em, self.lem_size[0], self.lem_size[1])
-                #else:
-                explored_img = em.copy()
+                prob_img = prob_map.copy()
+
+            Hp, Wp = prob_img.shape
 
             if self._im_list[1] is None:
-                self._im_list[1] = self._axs[1].imshow(explored_img, cmap='gray', vmin=0, vmax=255, origin='lower', interpolation='nearest')
-                self._axs[1].set_xlim(-0.5, self.lem_size[1] - 0.5)
-                self._axs[1].set_ylim(-0.5, self.lem_size[0] - 0.5)
+                self._im_list[1] = self._axs[1].imshow(prob_img, cmap='viridis', origin='lower',
+                                                    vmin=0.0, vmax=1.0, interpolation='nearest')
+                self._axs[1].set_xlim(-0.5, Wp - 0.5)
+                self._axs[1].set_ylim(-0.5, Hp - 0.5)
+                self._prob_colorbar = self._fig.colorbar(self._im_list[1], ax=self._axs[1], fraction=0.046, pad=0.04)
+                self._prob_colorbar.set_label("P(unknown)")
             else:
-                self._im_list[1].set_data(explored_img)
-                self._im_list[1].set_extent((-0.5, self.lem_size[1] - 0.5, -0.5, self.lem_size[0] - 0.5))
+                self._im_list[1].set_data(prob_img)
+                self._im_list[1].set_extent((-0.5, Wp - 0.5, -0.5, Hp - 0.5))
+                try:
+                    self._prob_colorbar.update_normal(self._im_list[1])
+                except Exception:
+                    pass
 
-            # --- Panel 2: LEM ---
+            # ---------------- Panel 2: LEM ----------------
             lem_img = self.lem_map if self.lem_map is not None else np.full(self.lem_size, 128, dtype=np.uint8)
             if self._im_list[2] is None:
                 self._im_list[2] = self._axs[2].imshow(lem_img, cmap='gray', vmin=0, vmax=255, origin='lower', interpolation='nearest')
@@ -587,26 +761,84 @@ class MapProcessor:
                 self._im_list[2].set_data(lem_img)
                 self._im_list[2].set_extent((-0.5, self.lem_size[1] - 0.5, -0.5, self.lem_size[0] - 0.5))
 
-            # actualizar scatter del robot en el panel 0
+            # ---------------- Actualizar marcador del robot en panel 0 y panel 1 (MISMO BLOQUE) ----------------
+            # 1) obtener celda del robot en mapa global
+            robot_cell = None
             if self.robot_pose is not None:
-                cell = self.get_robot_cell()
-                if cell is not None:
-                    row, col = cell
-                    if getattr(self, "_robot_scatter", None) is None:
-                        self._robot_scatter = self._axs[0].scatter([col], [row], c='red', s=50, marker='o', zorder=5)
-                    else:
-                        self._robot_scatter.set_offsets([[col, row]])
+                try:
+                    r_global, c_global = self.get_robot_cell()   # debe devolver (row, col) en mapa global
+                    robot_cell = (int(r_global), int(c_global))
+                except Exception:
+                    try:
+                        x, y, yaw = self.robot_pose
+                        c_global = int((x - self.map_origin_x) / self.resolution)
+                        r_global = int((y - self.map_origin_y) / self.resolution)
+                        robot_cell = (r_global, c_global)
+                    except Exception:
+                        robot_cell = None
+
+            # 2) actualizar scatter en panel 0 (mapa global)
+            if robot_cell is not None:
+                row, col = robot_cell
+                if getattr(self, "_robot_scatter", None) is None:
+                    self._robot_scatter = self._axs[0].scatter([col], [row], c='red', s=50, marker='o', zorder=5)
                 else:
-                    if getattr(self, "_robot_scatter", None) is not None:
-                        self._robot_scatter.remove()
-                        self._robot_scatter = None
+                    try:
+                        self._robot_scatter.set_offsets([[col, row]])
+                    except Exception:
+                        try:
+                            self._robot_scatter.remove()
+                        except Exception:
+                            pass
+                        self._robot_scatter = self._axs[0].scatter([col], [row], c='red', s=50, marker='o', zorder=5)
             else:
                 if getattr(self, "_robot_scatter", None) is not None:
-                    self._robot_scatter.remove()
+                    try:
+                        self._robot_scatter.remove()
+                    except Exception:
+                        pass
                     self._robot_scatter = None
 
+            # 3) mapear celda global -> celda reducida y actualizar scatter en panel 1
+            if robot_cell is not None:
+                r_g, c_g = robot_cell
+                H_in, W_in = self.map_data.shape
+                H_out, W_out = Hp, Wp
+                scale_r = H_in / float(H_out)
+                scale_c = W_in / float(W_out)
+                i_red = int(np.clip(np.floor(r_g / scale_r), 0, H_out - 1))
+                j_red = int(np.clip(np.floor(c_g / scale_c), 0, W_out - 1))
+                scatter_x = j_red
+                scatter_y = i_red
+            else:
+                scatter_x = Wp / 2.0
+                scatter_y = Hp / 2.0
+
+            if getattr(self, "_prob_robot_scatter", None) is None:
+                self._prob_robot_scatter = self._axs[1].scatter([scatter_x], [scatter_y], c='red', s=40, marker='o', zorder=6)
+                try:
+                    self._prob_robot_scatter._is_robot_marker = True
+                except Exception:
+                    pass
+            else:
+                try:
+                    self._prob_robot_scatter.set_offsets([[scatter_x, scatter_y]])
+                except Exception:
+                    try:
+                        self._prob_robot_scatter.remove()
+                    except Exception:
+                        pass
+                    self._prob_robot_scatter = self._axs[1].scatter([scatter_x], [scatter_y], c='red', s=40, marker='o', zorder=6)
+                    try:
+                        self._prob_robot_scatter._is_robot_marker = True
+                    except Exception:
+                        pass
+
+            # ---------------- Finalizar frame ----------------
             if draw:
                 plt.pause(0.001)
+
+
 
 
     def stop_plot(self):
