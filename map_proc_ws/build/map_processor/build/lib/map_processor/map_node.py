@@ -33,6 +33,16 @@ class SlamListener(Node):
         try:
             self.current_map_msg = msg
             self.processor.update_from_occupancy_grid(msg)
+            # suponer que self.processor es una instancia de MapProcessor
+            """print("Explored bbox (min_row,min_col,max_row,max_col):", self.processor.get_explored_bbox())
+            print("Explored bbox size (rows,height_cols):", self.processor.get_explored_bbox_size())
+            submap = self.processor.get_explored_map_copy(pad=0)
+            if submap is None:
+                print("No hay región explorada o mapa no inicializado.")
+            else:
+                print("Submap shape (rows,cols):", submap.shape)
+                print("Explored bbox (rows,cols):", self.processor.get_explored_bbox(), self.processor.get_explored_bbox_size())
+            """
             self.processor.update_plot()
         except Exception as e:
             self.get_logger().error(f'Error actualizando mapa: {e}')
