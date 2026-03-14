@@ -500,10 +500,11 @@ class MapProcessor:
         try:
             from scipy.ndimage import rotate
             # rotate devuelve una matriz flotante si input int; usamos order=0 (nearest), cval=UNKNOWN
-            rotated = rotate(buffer, angle=angle_deg, reshape=True, order=0, mode='constant', cval=UNKNOWN)
+            rotated = rotate(buffer, angle=angle_deg, reshape=False, order=0, mode='constant', cval=UNKNOWN)
         except Exception:
             # fallback: rotación cuantizada a 90° con np.rot90
             # aproximamos angle_deg a múltiplos de 90
+            print("WOWOWOWOWOWO")
             k = int(np.round((angle_deg % 360) / 90.0)) % 4
             rotated = np.rot90(buffer, k=k)
 
