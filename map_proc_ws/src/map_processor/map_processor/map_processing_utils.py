@@ -62,7 +62,7 @@ class MapProcessor:
 
         # ---------- Local Egocentric Map ----------
         # tamaño deseado de la LEM en celdas (H, W). Por defecto 24x24.
-        self.lem_size: Tuple[int, int] = (50, 50)
+        self.lem_size: Tuple[int, int] = (24, 24)
         # almacenamiento de la LEM (numpy array HxW uint8 con valores 0,128,255) o None
         self.lem_map: Optional[np.ndarray] = None
         self.lem_mark_agent: bool = False
@@ -493,11 +493,11 @@ class MapProcessor:
         # rotación: queremos que la orientación del robot (yaw) apunte hacia 'arriba' en la LEM.
         # Por tanto rotamos el buffer por -yaw (grados).
         #angle_deg = -np.degrees(yaw)
-        angle_deg = self.lem_rotation_offset_deg - np.degrees(yaw)
+        #angle_deg = self.lem_rotation_offset_deg - np.degrees(yaw)
 
         # intentar usar scipy.ndimage.rotate para rotación arbitraria (nearest neighbor)
-        rotated = None
-        try:
+        rotated = buffer
+        """try:
             from scipy.ndimage import rotate
             # rotate devuelve una matriz flotante si input int; usamos order=0 (nearest), cval=UNKNOWN
             rotated = rotate(buffer, angle=angle_deg, reshape=False, order=0, mode='constant', cval=UNKNOWN)
@@ -506,7 +506,7 @@ class MapProcessor:
             # aproximamos angle_deg a múltiplos de 90
             print("WOWOWOWOWOWO")
             k = int(np.round((angle_deg % 360) / 90.0)) % 4
-            rotated = np.rot90(buffer, k=k)
+            rotated = np.rot90(buffer, k=k)"""
 
         # center-crop la rotación a HxW
         rh, rw = rotated.shape
