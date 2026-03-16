@@ -34,6 +34,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, qos_profile_sensor_data, ReliabilityPolicy
 
+from .map_processing_utils import MapProcessor
+
 from . import reward as rw
 from ..common import utilities as util
 from ..common.settings import ENABLE_BACKWARD, EPISODE_TIMEOUT_SECONDS, ENABLE_MOTOR_NOISE, UNKNOWN, SUCCESS, COLLISION_WALL, COLLISION_OBSTACLE, TIMEOUT, TUMBLE, \
@@ -107,6 +109,13 @@ class DRLEnvironment(Node):
         self.clock_sub = self.create_subscription(Clock, '/clock', self.clock_callback, qos_profile=qos_clock)
         self.obstacle_odom_sub = self.create_subscription(Odometry, 'obstacle/odom', self.obstacle_odom_callback, qos)
         self.map_sub = self.create_subscription( OccupancyGrid, '/map', self.map_callback, 10 ) 
+        self.processor = MapProcessor()
+        """try:
+            self.processor.start_plot()
+        except Exception as e:
+            self.get_logger().warn(f'No se pudo iniciar plot: {e}')"""
+        self.map_known_percent_prev = 0.0
+        self.map_known_percent_curr = 0.0
         self.pose_sub = self.create_subscription( PoseWithCovarianceStamped, '/pose', self.pose_callback, qos )
         # clients
         self.task_succeed_client = self.create_client(RingGoal, 'task_succeed')
@@ -124,12 +133,12 @@ class DRLEnvironment(Node):
         self.known_cells_count = 0
         self.coverage = 0.0
         self.cov_previous = 0.0
-        self.pose = None
+        self.pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
 
     """*******************************************************************************
     ** Callback functions and relevant functions
     *******************************************************************************"""
-    def map_callback(self, msg):
+    """def map_callback(self, msg):
         h = int(msg.info.height)
         w = int(msg.info.width)
         resolution = float(msg.info.resolution)
@@ -179,14 +188,58 @@ class DRLEnvironment(Node):
         else: 
             self.coverage = 0.0
 
-        """# construir local grid 6x6 centrada en la pose actual
-        rx = float(self.pose.get('x', 0.0))
-        ry = float(self.pose.get('y', 0.0))
-        ryaw = float(self.pose.get('yaw', 0.0))
-        self.local_grid_6x6 = self.compute_local_grid_6x6(rx, ry, ryaw)"""
+        # construir local grid 6x6 centrada en la pose actual
+        #rx = float(self.pose.get('x', 0.0))
+        #ry = float(self.pose.get('y', 0.0))
+        #ryaw = float(self.pose.get('yaw', 0.0))
+        #self.local_grid_6x6 = self.compute_local_grid_6x6(rx, ry, ryaw)
 
         # logging mínimo (evitar spam)
-        self.get_logger().info(f"[MAP] recibido {w}x{h}, known_cells={known_cells_count}, coverage={self.coverage}")
+        self.get_logger().info(f"[MAP] recibido {w}x{h}, known_cells={known_cells_count}, coverage={self.coverage}")"""
+
+    def map_callback(self, msg: OccupancyGrid):
+        # actualizar el objeto MapProcessor con el OccupancyGrid recibido
+        try:
+            self.current_map_msg = msg
+            self.processor.update_from_occupancy_grid(msg)
+            # suponer que self.processor es una instancia de MapProcessor
+            """print("Explored bbox (min_row,min_col,max_row,max_col):", self.processor.get_explored_bbox())
+            print("Explored bbox size (rows,height_cols):", self.processor.get_explored_bbox_size())
+            submap = self.processor.get_explored_map_copy(pad=0)
+            if submap is None:
+                print("No hay región explorada o mapa no inicializado.")
+            else:
+                print("Submap shape (rows,cols):", submap.shape)
+                print("Explored bbox (rows,cols):", self.processor.get_explored_bbox(), self.processor.get_explored_bbox_size())
+            """
+            #self.processor.update_plot()
+        except Exception as e:
+            self.get_logger().error(f'Error actualizando mapa: {e}')
+            return
+
+        # acceder a métricas ya calculadas y loguearlas o publicarlas
+        free = self.processor.free_percent
+        occ = self.processor.occupied_percent
+        known_pct = 100 - self.processor.unknown_percent
+        coverage = self.processor.free_ratio_known  # o el nombre que uses
+        bbox = self.processor.explored_bbox
+        w = self.processor.width if self.processor.width is not None else 'N/A'
+        h = self.processor.height if self.processor.height is not None else 'N/A'
+
+        self.map_known_percent_prev = self.map_known_percent_curr
+        self.map_known_percent_curr = known_pct
+
+        """self.get_logger().info(
+            f'Map updated: free={free} occ={occ} known%={known_pct:.1f} '
+            f'bbox={bbox} '
+            f'H={h} W={w}'
+        )"""
+
+        self.get_logger().info(
+            f'Map updated: known%={known_pct:.1f} '
+            f'bbox={bbox} '
+            f'H={h} W={w}'
+        )
     
     def quaternion_to_yaw(self, x, y, z, w):
         siny_cosp = 2.0 * (w * z + x * y)
@@ -206,6 +259,8 @@ class DRLEnvironment(Node):
         try:
             x = float(msg.pose.pose.position.x)
             y = float(msg.pose.pose.position.y)
+            self.processor.set_robot_pose_from_pose_msg(msg)
+            #self.processor.update_plot()
         except Exception:
             return  # mensaje mal formado
 
@@ -332,44 +387,42 @@ class DRLEnvironment(Node):
         time.sleep(0.5)
     # Define the state with the current values of things. Important function.
     def get_state(self, action_linear_previous, action_angular_previous):
-        #print("*****************OBSTACLE DISTANCE************: ", self.obstacle_distance)
-        #print("*****************THRESHOLD_COLLISION************: ", THRESHOLD_COLLISION)
-        # Debugging time outputs
-        #ahora_ROS = self.get_clock().now()      # Tiempo ROS2 (builtin_interfaces/Time)
-        #ahora_time =  time.time()            # Tiempo sistema operativo (float, segundos)
-        #print(f"Tiempo ROS2 STATE: {ahora_ROS}  Tiempo SO STATE: {ahora_time}")    
+        import numpy as np, copy
 
-        state = copy.deepcopy(self.scan_ranges)                                             # range: [ 0, 1]
-        #state.append(float(numpy.clip((self.goal_distance / MAX_GOAL_DISTANCE), 0, 1)))     # range: [ 0, 1]
-        #state.append(float(self.goal_angle) / math.pi)                                      # range: [-1, 1]
-        state.append(float(action_linear_previous))                                         # range: [-1, 1]
-        state.append(float(action_angular_previous))                                        # range: [-1, 1]
-        state.append(float(self.coverage))
+        # base: copia de scan_ranges (lista de floats)
+        state = list(copy.deepcopy(self.scan_ranges))  # range: [0,1], longitud NUM_SCAN_SAMPLES
+
+        # acciones previas y yaw (escalas ya en [-1,1] y yaw en rad)
+        state.append(float(action_linear_previous))
+        state.append(float(action_angular_previous))
+
+        # --- ProbExplored reducido (float, contiene -1.0 para robot) ---
+        prob = self.processor.get_prob_explored_map_copy(as_uint8=False)
+        if prob is None:
+            # fallback: usar tamaño del mapa reducido esperado (prob_explored_bbox_size)
+            H, W = getattr(self.processor, "prob_explored_bbox_size", (24, 24))
+            prob = np.zeros((H, W), dtype=np.float32)
+        prob_flat = np.asarray(prob, dtype=np.float32).ravel()
+        # añadir los valores individuales (Python floats)
+        state.extend(prob_flat.astype(float).tolist())
+
+        # --- LEM ---
+        lem = self.processor.get_lem_copy(generate_if_missing=True)
+        if lem is None:
+            H, W = getattr(self.processor, "lem_size", (24, 24))
+            lem = np.full((H, W), 128, dtype=np.uint8)
+        lem_mapped = (lem.astype(np.float32) / 255.0).ravel()
+        state.extend(lem_mapped.astype(float).tolist())
+
+        yaw_val = float(self.pose.get('yaw', 0.0)) if isinstance(self.pose, dict) else 0.0
+        state.append(yaw_val)
+
+
         self.local_step += 1
-        ''' 
-        print("\n====== STATE DEBUG ======")
-        SCAN_INDEX = NUM_SCAN_SAMPLES // 2;
-        # Mostrar solo un valor del scan
-        print(f"scan_ranges[{SCAN_INDEX}] (único mostrado) = {self.scan_ranges[SCAN_INDEX]}")
-
-        # Índices importantes dentro del state final
-        goal_distance_norm = len(self.scan_ranges)
-        goal_angle_norm    = len(self.scan_ranges) + 1
-        prev_linear        = len(self.scan_ranges) + 2
-        prev_angular       = len(self.scan_ranges) + 3
-
-        print(f"Goal distance normalizado  (state[{goal_distance_norm}]) = {state[goal_distance_norm]}")
-        print(f"Goal angle normalizado     (state[{goal_angle_norm}])    = {state[goal_angle_norm]}")
-        print(f"Acción lineal previa       (state[{prev_linear}])        = {state[prev_linear]}")
-        print(f"Acción angular previa      (state[{prev_angular}])       = {state[prev_angular]}")
-
-        print("================================\n")
-        #input("Pulsa ENTER para continuar...")
-        '''
         if self.local_step <= 30: # Grace period to wait for simulation reset
             return state
         # Success
-        if self.coverage > 0.8:
+        if (100 - self.processor.unknown_percent) > 95.0:
             self.succeed = SUCCESS
         # Collision
         elif self.obstacle_distance < THRESHOLD_COLLISION: # obstacle_distance is the minmum distance from LiDAR, if it is below threshold, collision happened
@@ -429,7 +482,8 @@ class DRLEnvironment(Node):
         # Prepare repsonse to send back to the caller
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR]) # Get state with the actions using get_state function
         # Get reward using the reward function defined in reward.py
-        cov_incr = max(0, self.coverage - self.cov_previous)
+        #cov_incr = max(0, self.coverage - self.cov_previous)
+        cov_incr = max(0, self.map_known_percent_curr - self.map_known_percent_prev / 100.0) 
         response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance))
         response.done = self.done
         response.success = self.succeed

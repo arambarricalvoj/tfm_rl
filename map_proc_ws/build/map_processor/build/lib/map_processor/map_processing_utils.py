@@ -58,7 +58,7 @@ class MapProcessor:
         self.prob_kernel_type = "uniform"    # "uniform" o "gaussian"
         self.prob_kernel = None              # si no es None, usar kernel 2D personalizado (se normaliza)
         self.prob_return_uint8 = False       # si True devuelve 0..255 uint8, si False devuelve float 0..1
-
+        self.prob_robot_marker_size = 5
 
         # ---------- Local Egocentric Map ----------
         # tamaño deseado de la LEM en celdas (H, W). Por defecto 24x24.
@@ -414,16 +414,61 @@ class MapProcessor:
 
         out = np.clip(out, 0.0, 1.0)
 
+        # --- marcar vecindad del robot en el mapa reducido con valor -1.0 (si es posible) ---
+        try:
+            robot_cell = self.get_robot_cell()  # (row, col) en mapa original
+        except Exception:
+            robot_cell = None
+
+        if robot_cell is not None:
+            r_g, c_g = robot_cell
+            # convertir a índices reducidos (i_red, j_red)
+            i_red = int(np.clip(int(np.floor(r_g / scale_r)), 0, H_out - 1))
+            j_red = int(np.clip(int(np.floor(c_g / scale_c)), 0, W_out - 1))
+
+            # tamaño de vecindad D (usa atributo si existe, si no 3)
+            D = getattr(self, "prob_robot_marker_size", 3)
+            try:
+                D = max(1, int(D))
+            except Exception:
+                D = 3
+
+            dhalf = D // 2
+            r0 = max(0, i_red - dhalf)
+            r1 = min(H_out - 1, i_red + dhalf)
+            c0 = max(0, j_red - dhalf)
+            c1 = min(W_out - 1, j_red + dhalf)
+
+            # asegurarnos de que out es float para poder usar -1.0
+            if out.dtype != np.float32 and out.dtype != np.float64:
+                out = out.astype(np.float32)
+            out[r0:r1+1, c0:c1+1] = -1.0
+        # ------------------------------------------------------------------------------
+
         # guardar bbox y mapa reducido en la instancia
-        # prob_explored_bbox: si quieres limitar a una subregión, puedes calcular r0,c0,r1,c1; por defecto usamos todo el mapa
         self.prob_explored_bbox = (0, 0, H_in - 1, W_in - 1)
-        self.prob_explored_map_reduced = (out * 255.0).astype(np.uint8) if return_uint8 else out
         self.prob_explored_bbox_size = (H_out, W_out)
         self.prob_neighborhood_scale = neighborhood_scale
         self.prob_kernel_type = kernel_type
         self.prob_kernel = kernel_local
 
+        # Si se pidió uint8, mapear cuidadosamente para preservar el marcador del robot.
+        # Convención: reservamos 0 como "robot aquí", y mapeamos probabilidades 0..1 a 1..255.
+        if return_uint8:
+            reduced = np.zeros_like(out, dtype=np.uint8)
+            # máscara de robot (valores exactamente -1.0)
+            mask_robot = (out == -1.0)
+            # mapear valores 0..1 -> 1..255
+            scaled = (np.clip(out, 0.0, 1.0) * 254.0 + 1.0).astype(np.uint8)
+            reduced[~mask_robot] = scaled[~mask_robot]
+            reduced[mask_robot] = 0
+            self.prob_explored_map_reduced = reduced
+        else:
+            # float: preservamos -1.0 tal cual
+            self.prob_explored_map_reduced = out
+
         return self.prob_explored_map_reduced
+
 
     # Método getter que devuelve copia del mapa reducido (24x24)
     def get_prob_explored_map_copy(self, as_uint8: bool | None = None):
@@ -834,6 +879,64 @@ class MapProcessor:
                         self._prob_robot_scatter._is_robot_marker = True
                     except Exception:
                         pass
+            
+
+            """            # ---------------- Panel 1: prob_explored_map reducido (heatmap) ----------------
+            try:
+                prob_map = self.get_prob_explored_map_copy(as_uint8=False)
+            except Exception:
+                prob_map = None
+
+            if prob_map is None:
+                prob_img = np.zeros(self.prob_explored_bbox_size, dtype=np.float32)
+            else:
+                prob_img = prob_map.copy()
+
+            # Si por alguna razón prob_img viene en uint8 con convención 0==robot, convertir:
+            if prob_img.dtype == np.uint8:
+                # convención: 0 -> robot marker, 1..255 -> prob 0..1 (ver compute_prob_explored_map)
+                arr = prob_img.astype(np.float32)
+                mask_robot = (arr == 0)
+                # mapear 1..255 -> 0..1
+                arr[~mask_robot] = (arr[~mask_robot] - 1.0) / 254.0
+                arr[mask_robot] = -1.0
+                prob_img = arr
+
+            # asegurar float32
+            if prob_img.dtype != np.float32 and prob_img.dtype != np.float64:
+                prob_img = prob_img.astype(np.float32)
+
+            Hp, Wp = prob_img.shape
+
+            # crear colormap y normalización que reserve un color para -1.0
+            cmap = plt.cm.viridis.copy()
+            cmap.set_under('red')                     # valores por debajo de vmin se pintan en rojo
+            norm = mcolors.Normalize(vmin=-1.0, vmax=1.0)
+
+            if self._im_list[1] is None:
+                self._im_list[1] = self._axs[1].imshow(
+                    prob_img, cmap=cmap, origin='lower',
+                    norm=norm, interpolation='nearest', vmin=-1.0, vmax=1.0
+                )
+                self._axs[1].set_xlim(-0.5, Wp - 0.5)
+                self._axs[1].set_ylim(-0.5, Hp - 0.5)
+                self._prob_colorbar = self._fig.colorbar(self._im_list[1], ax=self._axs[1], fraction=0.046, pad=0.04)
+                self._prob_colorbar.set_label("P(unknown)  (-1 = robot)")
+                # ajustar ticks para que no confundan el marcador -1 con la escala 0..1
+                self._prob_colorbar.set_ticks([-1.0, 0.0, 0.5, 1.0])
+                self._prob_colorbar.set_ticklabels(['robot', '0.0', '0.5', '1.0'])
+            else:
+                # actualizar datos (prob_img puede contener -1.0)
+                self._im_list[1].set_data(prob_img)
+                self._im_list[1].set_norm(norm)
+                self._im_list[1].set_cmap(cmap)
+                self._im_list[1].set_extent((-0.5, Wp - 0.5, -0.5, Hp - 0.5))
+                try:
+                    self._prob_colorbar.update_normal(self._im_list[1])
+                except Exception:
+                    pass
+            """
+
 
             # ---------------- Finalizar frame ----------------
             if draw:

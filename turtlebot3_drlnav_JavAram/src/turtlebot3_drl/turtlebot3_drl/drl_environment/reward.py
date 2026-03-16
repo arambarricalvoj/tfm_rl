@@ -110,7 +110,7 @@ def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obs
     # [-2 * (3^2), 0] fuerte
     r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2)  # Penalize going Velocities different than max robot velocity
 
-    r_cov = 8 * cov_incr
+    r_cov = 10 * cov_incr
 
     reward = (r_cov + r_obstacle + r_vangular + r_vlinear - 10) / 1000.0
     if succeed == SUCCESS:

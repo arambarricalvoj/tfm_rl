@@ -11,8 +11,16 @@ from ..common.ounoise import OUNoise
 from .off_policy_agent import OffPolicyAgent, Network
 
 LINEAR = 0
-ANGULAR = 1 
+ANGULAR = 1
 NUM_SCAN_SAMPLES = 500
+
+# Map sizes (as discussed: 24x24 each)
+PROB_H = 24
+PROB_W = 24
+PROB_N = PROB_H * PROB_W
+LEM_H = 24
+LEM_W = 24
+LEM_N = LEM_H * LEM_W
 
 # Reference for network structure: https://arxiv.org/pdf/2102.10711.pdf
 # https://github.com/hanlinniu/turtlebot3_ddpg_collision_avoidance/blob/main/turtlebot_ddpg/scripts/original_ddpg/ddpg_network_turtlebot3_original_ddpg.py
@@ -23,25 +31,66 @@ class Actor(Network):
     def __init__(self, name, state_size, action_size, hidden_size):
         super(Actor, self).__init__(name)
 
-        # --- LASER CNN ---
-        out_dimension = 20
-        self.cnn_extract = nn.Sequential(
-            nn.Conv1d(1, 16, kernel_size=7, stride=3), #16 canales
+        # --- common parameters ---
+        out_dimension = 20  # output dimension per branch
+
+        # compute scalar size (everything that's not scan/prob/lem)
+        # state layout expected: [ scan(NUM_SCAN_SAMPLES), scalars (actions+yaw etc) , prob_flat(PROB_N), lem_flat(LEM_N) ]
+        self.state_size = state_size
+        self.action_size = action_size
+        self._num_scan = NUM_SCAN_SAMPLES
+        self._prob_n = PROB_N
+        self._lem_n = LEM_N
+        self.scalar_size = state_size - NUM_SCAN_SAMPLES - PROB_N - LEM_N
+        if self.scalar_size < 0:
+            raise ValueError("state_size too small for configured NUM_SCAN_SAMPLES/PROB_N/LEM_N")
+
+        # --- LASER CNN (1D) ---
+        self.cnn_laser = nn.Sequential(
+            nn.Conv1d(1, 16, kernel_size=7, stride=3),
             nn.ReLU(),
-            nn.Conv1d(16, 1, kernel_size=6, stride=1, padding=1), #1 canal, Padding adding to avoid loosing values
+            nn.Conv1d(16, 1, kernel_size=6, stride=1, padding=1),
             nn.ReLU(),
-            # Esta capa colapsa a 20 valores
-            nn.AdaptiveMaxPool1d(out_dimension), 
-            nn.Flatten() 
+            nn.AdaptiveMaxPool1d(out_dimension),
+            nn.Flatten()
         )
 
+        # --- PROB MAP CNN (2D) ---
+        # reduce spatially and map to out_dimension
+        self.cnn_prob = nn.Sequential(
+            nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool2d((4, 5)),  # example reduction -> 4x5
+            nn.Flatten(),
+            nn.Linear(16 * 4 * 5, out_dimension),
+            nn.ReLU()
+        )
+
+        # --- LEM MAP CNN (2D) ---
+        self.cnn_lem = nn.Sequential(
+            nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool2d((4, 5)),
+            nn.Flatten(),
+            nn.Linear(16 * 4 * 5, out_dimension),
+            nn.ReLU()
+        )
 
         # --- CONCATENATED FCN---
-        self.fa1 = nn.Linear(out_dimension+(state_size-NUM_SCAN_SAMPLES), hidden_size)
+        # final input dim = laser_out + prob_out + lem_out + scalar_features
+        fc_in = out_dimension + out_dimension + out_dimension + self.scalar_size
+        self.fa1 = nn.Linear(fc_in, hidden_size)
         self.fa2 = nn.Linear(hidden_size, hidden_size)
         self.fa3 = nn.Linear(hidden_size, action_size)
 
         self.apply(super().init_weights)
+
+        # store out_dimension for forward
+        self._out_dim = out_dimension
 
     def forward(self, states, visualize=False):
         # If no batch we add a batch dimension
@@ -50,20 +99,38 @@ class Actor(Network):
             states = states.unsqueeze(0)
             single_dim = True
 
-        # Make tensors to be compatible with CNN input and separate laser from scalars         
-        scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)  # [Batch, 1, 250]
-        scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
+        b = states.shape[0]
 
+        # --- reconstruct inputs from flat state vector ---
+        # scan
+        scan = states[:, :self._num_scan].unsqueeze(1)  # [B, 1, NUM_SCAN_SAMPLES]
 
-        # La CNN solo recibe laser, el resto de las variables se concatenan después de la CNN
-        x_laser = self.cnn_extract(scan)
+        # scalars (actions + yaw etc)
+        s0 = self._num_scan
+        s1 = s0 + self.scalar_size
+        scalars = states[:, s0:s1]  # [B, scalar_size]
 
-        # Unión: 20 neuronas de visión + 4 de contexto = 24 neuronas
-        #print("x_laser shape:", x_laser.shape)  # Debug: Verificar forma de salida de la CNN 
-        #print("scalars shape:", scalars.shape)  # Debug: Verificar forma de los datos escalares
-        x_combined = torch.cat([x_laser, scalars], dim=1)
-        
-        # --- define forward pass here ---
+        # prob map flat -> reshape to (B,1,PROB_H,PROB_W)
+        p0 = s1
+        p1 = p0 + self._prob_n
+        prob_flat = states[:, p0:p1]
+        prob_map = prob_flat.view(b, 1, PROB_H, PROB_W)
+
+        # lem map flat -> reshape
+        l0 = p1
+        l1 = l0 + self._lem_n
+        lem_flat = states[:, l0:l1]
+        lem_map = lem_flat.view(b, 1, LEM_H, LEM_W)
+
+        # --- pass through branches ---
+        x_laser = self.cnn_laser(scan)        # (B, out_dimension)
+        x_prob = self.cnn_prob(prob_map)      # (B, out_dimension)
+        x_lem = self.cnn_lem(lem_map)         # (B, out_dimension)
+
+        # concat all features
+        x_combined = torch.cat([x_laser, x_prob, x_lem, scalars], dim=1)
+
+        # --- fully connected ---
         x1 = torch.relu(self.fa1(x_combined))
         x2 = torch.relu(self.fa2(x1))
         action = torch.tanh(self.fa3(x2))
@@ -71,46 +138,76 @@ class Actor(Network):
         if single_dim:
             action = action.squeeze(0)
 
-        # -- define layers to visualize here (optional) ---
+        # optional visualization hook (kept as in original)
         if visualize and self.visual:
             self.visual.update_layers(states, action, [x1, x2], [self.fa1.bias, self.fa2.bias])
-        # -- define layers to visualize until here ---
+
         return action
+
 
 class Critic(Network):
     def __init__(self, name, state_size, action_size, hidden_size):
         super(Critic, self).__init__(name)
         out_dimension = 20
-        scalar_size = state_size - NUM_SCAN_SAMPLES
+
+        # compute scalar size consistent with Actor
+        self.state_size = state_size
+        self._num_scan = NUM_SCAN_SAMPLES
+        self._prob_n = PROB_N
+        self._lem_n = LEM_N
+        self.scalar_size = state_size - NUM_SCAN_SAMPLES - PROB_N - LEM_N
+        if self.scalar_size < 0:
+            raise ValueError("state_size too small for configured NUM_SCAN_SAMPLES/PROB_N/LEM_N")
 
         # --- LASER CNN (Twin Extractor) ---
-        # Definimos el bloque para que Q1 y Q2 tengan extractores independientes
         def get_laser_extractor():
             return nn.Sequential(
-                nn.Conv1d(1, 16, kernel_size=7, stride=3), 
+                nn.Conv1d(1, 16, kernel_size=7, stride=3),
                 nn.ReLU(),
-                # Reducción a 1 canal con kernel 3 para captar contexto espacial
-                nn.Conv1d(16, 1, kernel_size=6, stride=1, padding=1), 
+                nn.Conv1d(16, 1, kernel_size=6, stride=1, padding=1),
                 nn.ReLU(),
-                nn.AdaptiveMaxPool1d(out_dimension), 
-                nn.Flatten() 
+                nn.AdaptiveMaxPool1d(out_dimension),
+                nn.Flatten()
             )
 
-        self.cnn_q1 = get_laser_extractor()
-        self.cnn_q2 = get_laser_extractor()
+        self.cnn_q1_laser = get_laser_extractor()
+        self.cnn_q2_laser = get_laser_extractor()
+
+        # --- MAP CNN extractors for Q1 and Q2 (prob + lem) ---
+        def get_map_extractor():
+            return nn.Sequential(
+                nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.AdaptiveMaxPool2d((4, 5)),
+                nn.Flatten(),
+                nn.Linear(16 * 4 * 5, out_dimension),
+                nn.ReLU()
+            )
+
+        # Q1 map extractors
+        self.cnn_q1_prob = get_map_extractor()
+        self.cnn_q1_lem = get_map_extractor()
+        # Q2 map extractors
+        self.cnn_q2_prob = get_map_extractor()
+        self.cnn_q2_lem = get_map_extractor()
 
         # --- Q1 FCN ---
-        # Entrada: 20 (CNN) + 4 (Escalares) + action_size
-        self.l1 = nn.Linear(out_dimension + scalar_size + action_size, hidden_size)
+        # input: laser_out + prob_out + lem_out + scalar_size + action_size
+        q_in = out_dimension + out_dimension + out_dimension + self.scalar_size + action_size
+        self.l1 = nn.Linear(q_in, hidden_size)
         self.l2 = nn.Linear(hidden_size, hidden_size)
         self.l3 = nn.Linear(hidden_size, 1)
 
         # --- Q2 FCN ---
-        self.l4 = nn.Linear(out_dimension + scalar_size + action_size, hidden_size)
+        self.l4 = nn.Linear(q_in, hidden_size)
         self.l5 = nn.Linear(hidden_size, hidden_size)
         self.l6 = nn.Linear(hidden_size, 1)
 
         self.apply(super().init_weights)
+
+        self._out_dim = out_dimension
 
     def forward(self, states, actions):
         # If no batch we add a batch dimension
@@ -118,22 +215,39 @@ class Critic(Network):
             states = states.unsqueeze(0)
         if actions.dim() == 1:
             actions = actions.unsqueeze(0)
-            
-        # Make tensors to be compatible with CNN input and separate laser from scalars   
-        scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)  # [Batch, 1, 250]
-        scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
 
-        # --- Rama Q1 ---
-        x1_laser = self.cnn_q1(scan)
-        # Concatenación unificada: [CNN features, Escalares, Acciones]
-        x1 = torch.cat([x1_laser, scalars, actions], dim=1)
+        b = states.shape[0]
+
+        # reconstruct inputs
+        scan = states[:, :self._num_scan].unsqueeze(1)  # [B,1,NUM_SCAN]
+        s0 = self._num_scan
+        s1 = s0 + self.scalar_size
+        scalars = states[:, s0:s1]  # [B, scalar_size]
+
+        p0 = s1
+        p1 = p0 + self._prob_n
+        prob_flat = states[:, p0:p1]
+        prob_map = prob_flat.view(b, 1, PROB_H, PROB_W)
+
+        l0 = p1
+        l1 = l0 + self._lem_n
+        lem_flat = states[:, l0:l1]
+        lem_map = lem_flat.view(b, 1, LEM_H, LEM_W)
+
+        # --- Q1 branch ---
+        x1_laser = self.cnn_q1_laser(scan)
+        x1_prob = self.cnn_q1_prob(prob_map)
+        x1_lem = self.cnn_q1_lem(lem_map)
+        x1 = torch.cat([x1_laser, x1_prob, x1_lem, scalars, actions], dim=1)
         x1 = torch.relu(self.l1(x1))
         x1 = torch.relu(self.l2(x1))
         q1 = self.l3(x1)
 
-        # --- Rama Q2 ---
-        x2_laser = self.cnn_q2(scan)
-        x2 = torch.cat([x2_laser, scalars, actions], dim=1)
+        # --- Q2 branch ---
+        x2_laser = self.cnn_q2_laser(scan)
+        x2_prob = self.cnn_q2_prob(prob_map)
+        x2_lem = self.cnn_q2_lem(lem_map)
+        x2 = torch.cat([x2_laser, x2_prob, x2_lem, scalars, actions], dim=1)
         x2 = torch.relu(self.l4(x2))
         x2 = torch.relu(self.l5(x2))
         q2 = self.l6(x2)
@@ -145,15 +259,30 @@ class Critic(Network):
         if states.dim() == 1:
             states = states.unsqueeze(0)
 
-        # Make tensors to be compatible with CNN input and separate laser from scalars      
-        scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)  # [Batch, 1, 250]
-        scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
+        b = states.shape[0]
+        scan = states[:, :self._num_scan].unsqueeze(1)
+        s0 = self._num_scan
+        s1 = s0 + self.scalar_size
+        scalars = states[:, s0:s1]
 
-        x1_laser = self.cnn_q1(scan)
-        x1 = torch.cat([x1_laser, scalars, actions], dim=1)
+        p0 = s1
+        p1 = p0 + self._prob_n
+        prob_flat = states[:, p0:p1]
+        prob_map = prob_flat.view(b, 1, PROB_H, PROB_W)
+
+        l0 = p1
+        l1 = l0 + self._lem_n
+        lem_flat = states[:, l0:l1]
+        lem_map = lem_flat.view(b, 1, LEM_H, LEM_W)
+
+        x1_laser = self.cnn_q1_laser(scan)
+        x1_prob = self.cnn_q1_prob(prob_map)
+        x1_lem = self.cnn_q1_lem(lem_map)
+        x1 = torch.cat([x1_laser, x1_prob, x1_lem, scalars, actions], dim=1)
         x1 = torch.relu(self.l1(x1))
         x1 = torch.relu(self.l2(x1))
         return self.l3(x1)
+
 
 class TD3(OffPolicyAgent):
     def __init__(self, device, sim_speed):
@@ -163,9 +292,9 @@ class TD3(OffPolicyAgent):
         self.noise = OUNoise(action_space=self.action_size, max_sigma=0.1, min_sigma=0.1, decay_period=8000000)
 
         # TD3 parameters
-        self.policy_noise   = POLICY_NOISE
-        self.noise_clip     = POLICY_NOISE_CLIP
-        self.policy_freq    = POLICY_UPDATE_FREQUENCY
+        self.policy_noise = POLICY_NOISE
+        self.noise_clip = POLICY_NOISE_CLIP
+        self.policy_freq = POLICY_UPDATE_FREQUENCY
 
         self.last_actor_loss = 0
 
