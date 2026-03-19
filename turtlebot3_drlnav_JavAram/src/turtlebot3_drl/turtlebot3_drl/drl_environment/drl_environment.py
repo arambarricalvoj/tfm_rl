@@ -507,7 +507,7 @@ class DRLEnvironment(Node):
         else:
             self.steps_no_move = 0
 
-        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance, self.diff_pose, self.steps_no_move))
+        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance, self.diff_pose, dist, self.steps_no_move))
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0 # Will be updated at the end of episode
