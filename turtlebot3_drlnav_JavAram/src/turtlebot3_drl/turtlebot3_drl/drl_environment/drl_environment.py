@@ -134,6 +134,9 @@ class DRLEnvironment(Node):
         self.coverage = 0.0
         self.cov_previous = 0.0
         self.pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.prev_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.steps_no_move = 0   # opcional, para penalización acumulativa
 
     """*******************************************************************************
     ** Callback functions and relevant functions
@@ -268,18 +271,25 @@ class DRLEnvironment(Node):
         q = msg.pose.pose.orientation
         yaw = self.quaternion_to_yaw(q.x, q.y, q.z, q.w)
 
-        # actualizar solo si hay cambio apreciable (evita logs y trabajo innecesario)
-        dx = abs(x - self.pose.get('x', 0.0))
-        dy = abs(y - self.pose.get('y', 0.0))
-        dyaw = abs((yaw - self.pose.get('yaw', 0.0) + math.pi) % (2*math.pi) - math.pi)
-
+        self.prev_pose['x'] = self.pose['x']
+        self.prev_pose['y'] = self.pose['y']
+        self.prev_pose['yaw'] = self.pose['yaw']
+        
         self.pose['x'] = x
         self.pose['y'] = y
         self.pose['yaw'] = yaw
 
+        # actualizar solo si hay cambio apreciable (evita logs y trabajo innecesario)
+        dx = self.pose['x'] - self.prev_pose['x']
+        dy = self.pose['y'] - self.prev_pose['y']
+        dyaw = abs((self.pose['yaw'] - self.prev_pose['yaw'] + math.pi) % (2*math.pi) - math.pi)
+        self.diff_pose['x'] = dx
+        self.diff_pose['y'] = dy
+        self.diff_pose['yaw'] = dyaw
+      
         # log solo si cambio significativo (ej.: > 1 cm o > 0.01 rad)
-        if dx > 0.01 or dy > 0.01 or dyaw > 0.01:
-            self.get_logger().info(f"Pose actualizada -> x: {x:.3f}, y: {y:.3f}, yaw: {yaw:.3f} rad")
+        #if dx > 0.01 or dy > 0.01 or dyaw > 0.01:
+        self.get_logger().info(f"Pose actualizada -> x: {x:.3f}, y: {y:.3f}, yaw: {yaw:.3f} rad")
 
     # Active everytime goal_pose topic receives a msg and updates goal position
     def goal_pose_callback(self, msg):
@@ -368,6 +378,7 @@ class DRLEnvironment(Node):
     # Stop the robot and reset the environment. Not sure if this is working properly.
     def stop_reset_robot(self, success):
         self.cmd_vel_pub.publish(Twist()) # stop robot
+        self.steps_no_move = 0   # opcional, para penalización acumulativa
         self.episode_deadline = Infinity
         self.done = True
         req = RingGoal.Request() # Prepare service request to send to task succeed/fail service
@@ -450,6 +461,10 @@ class DRLEnvironment(Node):
         response.reward = 0.0
         response.done = False
         response.distance_traveled = 0.0
+        self.pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.prev_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
+        self.steps_no_move = 0
         rw.reward_initialize(None)
         return response
     
@@ -483,8 +498,16 @@ class DRLEnvironment(Node):
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR]) # Get state with the actions using get_state function
         # Get reward using the reward function defined in reward.py
         #cov_incr = max(0, self.coverage - self.cov_previous)
-        cov_incr = max(0, self.map_known_percent_curr - self.map_known_percent_prev / 100.0) 
-        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance))
+        cov_incr = max(0.0, (self.map_known_percent_curr - self.map_known_percent_prev) / 100.0)
+
+        dist = math.hypot(self.diff_pose['x'], self.diff_pose['y'])
+        MIN_MOVE_DIST = 0.34  # diámetro del robot
+        if dist < MIN_MOVE_DIST:
+            self.steps_no_move += 1
+        else:
+            self.steps_no_move = 0
+
+        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance, self.diff_pose, self.steps_no_move))
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0 # Will be updated at the end of episode

@@ -4,6 +4,16 @@ import math
 # -------------------------
 # Parámetros ajustables
 # -------------------------
+
+# Parámetros sugeridos (ajusta según tu robot)
+MIN_MOVE_DIST = 0.34         # m, umbral mínimo (diámetro Create3 ~0.34)
+PENALTY_NO_MOVE = 0.02       # penalización base por paso sin movimiento suficiente
+NO_MOVE_ACC_SCALE = 0.02     # penalización adicional por pasos consecutivos
+NO_MOVE_ACC_CAP = 0.5        # cap máximo de la penalización acumulada
+SMOOTH_WINDOW = 5            # ventana para media móvil de distancias
+ROTATION_ONLY_THRESH = 0.4   # rad, si gira mucho sin moverse -> penal extra
+PENALTY_ROTATION_ONLY = 0.01 # penalización por rotar en sitio
+
 DISCOVERY_SCALE = 1.0
 MAX_CELLS_PER_METER = 40.0
 MIN_DIST_FOR_PROX_PEN = 0.22
@@ -87,19 +97,13 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
 # -------------------------
 # Recompensa de exploración (integrada, devuelve float)
 # -------------------------
-def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obstacle_dist):
+def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obstacle_dist, pose_diff, dist, steps_no_move):
+    # (tu código original arriba sin cambios)
     # [-3.14, 0] no es demasiado fuerte
     #r_yaw = float(-1 * abs(goal_angle))  # Penalize error in orientation towards goal
 
     # [-4, 0] bien
     r_vangular = -1 * (action_angular ** 2)  # Penalize high angular velocities
-
-    # [-1, 1] es suave
-    #try:
-    #    gd_init = float(goal_dist_initial) if goal_dist_initial != 0 else float(goal_dist)
-    #except Exception:
-    #    gd_init = float(goal_dist)
-    #r_distance = (2 * gd_init) / (gd_init + float(goal_dist)) - 1  # Reward getting closer to the goal
 
     # [-20, 0] muy fuerte
     if min_obstacle_dist < MIN_DIST_FOR_PROX_PEN:
@@ -113,11 +117,43 @@ def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obs
     r_cov = 10 * cov_incr
 
     reward = (r_cov + r_obstacle + r_vangular + r_vlinear - 10) / 1000.0
+
+    # -------------------------
+    # Penalización por no moverse / girar en sitio
+    # -------------------------
+    dx = pose_diff['x']
+    dy = pose_diff['y']
+    dtheta = pose_diff['yaw']
+    #dist = math.hypot(dx, dy)
+
+    # parámetros simples
+    MIN_MOVE_DIST = 0.34              # diámetro del robot
+    PENALTY_NO_MOVE = 0.02            # penalización base
+    NO_MOVE_ACC_SCALE = 0.02          # penalización acumulativa
+    NO_MOVE_ACC_CAP = 0.5             # límite
+    ROTATION_ONLY_THRESH = 0.4        # rad
+    PENALTY_ROTATION_ONLY = 0.01      # penalización por girar en sitio
+
+    # penalización por no moverse
+    if dist < MIN_MOVE_DIST:
+        # penalización base
+        reward -= PENALTY_NO_MOVE
+
+        # penalización acumulativa
+        acc_pen = NO_MOVE_ACC_SCALE * max(0, steps_no_move - 1)
+        acc_pen = min(acc_pen, NO_MOVE_ACC_CAP)
+        reward -= acc_pen
+
+        # penalización por rotación sin traslación
+        if abs(dtheta) > ROTATION_ONLY_THRESH:
+            reward -= PENALTY_ROTATION_ONLY
+
     if succeed == SUCCESS:
         reward += 2.0
     elif succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
         reward -= 1.0
     return float(reward)
+
 
 # -------------------------
 # Wrapper get_reward: compatibilidad con firma antigua y nueva

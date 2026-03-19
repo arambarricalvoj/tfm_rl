@@ -58,25 +58,25 @@ class Actor(Network):
         # --- PROB MAP CNN (2D) ---
         # reduce spatially and map to out_dimension
         self.cnn_prob = nn.Sequential(
-            nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(1, 16, kernel_size=5, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(16, 1, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.AdaptiveMaxPool2d((4, 5)),  # example reduction -> 4x5
             nn.Flatten(),
-            nn.Linear(16 * 4 * 5, out_dimension),
+            nn.Linear(4 * 5, out_dimension),
             nn.ReLU()
         )
 
         # --- LEM MAP CNN (2D) ---
         self.cnn_lem = nn.Sequential(
-            nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(1, 16, kernel_size=7, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(16, 1, kernel_size=6, stride=1, padding=1),
             nn.ReLU(),
-            nn.AdaptiveMaxPool2d((4, 5)),
+            nn.AdaptiveMaxPool2d((4, 5)),  # example reduction -> 4x5
             nn.Flatten(),
-            nn.Linear(16 * 4 * 5, out_dimension),
+            nn.Linear(4 * 5, out_dimension),
             nn.ReLU()
         )
 
