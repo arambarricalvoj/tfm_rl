@@ -108,12 +108,15 @@ class DRLEnvironment(Node):
         self.scan_sub = self.create_subscription(LaserScan, self.scan_topic, self.scan_callback, qos_profile=qos_profile_sensor_data)
         self.clock_sub = self.create_subscription(Clock, '/clock', self.clock_callback, qos_profile=qos_clock)
         self.obstacle_odom_sub = self.create_subscription(Odometry, 'obstacle/odom', self.obstacle_odom_callback, qos)
+
         self.map_sub = self.create_subscription( OccupancyGrid, '/map', self.map_callback, 10 ) 
         self.processor = MapProcessor()
         """try:
             self.processor.start_plot()
         except Exception as e:
             self.get_logger().warn(f'No se pudo iniciar plot: {e}')"""
+        self.exploration = {'current': 0.0, 'previous': 0.0}
+
         self.map_known_percent_prev = 0.0
         self.map_known_percent_curr = 0.0
         self.pose_sub = self.create_subscription( PoseWithCovarianceStamped, '/pose', self.pose_callback, qos )
@@ -136,7 +139,9 @@ class DRLEnvironment(Node):
         self.pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.prev_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
-        self.steps_no_move = 0   # opcional, para penalización acumulativa
+        #self.steps_no_move = 0   # opcional, para penalización acumulativa
+
+        self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
 
     """*******************************************************************************
     ** Callback functions and relevant functions
@@ -229,8 +234,8 @@ class DRLEnvironment(Node):
         w = self.processor.width if self.processor.width is not None else 'N/A'
         h = self.processor.height if self.processor.height is not None else 'N/A'
 
-        self.map_known_percent_prev = self.map_known_percent_curr
-        self.map_known_percent_curr = known_pct
+        self.exploration['previous'] = self.exploration['current']
+        self.exploration['current'] = known_pct / 100.0
 
         """self.get_logger().info(
             f'Map updated: free={free} occ={occ} known%={known_pct:.1f} '
@@ -378,7 +383,6 @@ class DRLEnvironment(Node):
     # Stop the robot and reset the environment. Not sure if this is working properly.
     def stop_reset_robot(self, success):
         self.cmd_vel_pub.publish(Twist()) # stop robot
-        self.steps_no_move = 0   # opcional, para penalización acumulativa
         self.episode_deadline = Infinity
         self.done = True
         req = RingGoal.Request() # Prepare service request to send to task succeed/fail service
@@ -464,7 +468,8 @@ class DRLEnvironment(Node):
         self.pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.prev_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
-        self.steps_no_move = 0
+        self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
+        self.exploration = {'current': 0.0, 'previous': 0.0}
         rw.reward_initialize(None)
         return response
     
@@ -498,16 +503,16 @@ class DRLEnvironment(Node):
         response.state = self.get_state(request.previous_action[LINEAR], request.previous_action[ANGULAR]) # Get state with the actions using get_state function
         # Get reward using the reward function defined in reward.py
         #cov_incr = max(0, self.coverage - self.cov_previous)
-        cov_incr = max(0.0, (self.map_known_percent_curr - self.map_known_percent_prev) / 100.0)
+        #cov_incr = max(0.0, (self.map_known_percent_curr - self.map_known_percent_prev) / 100.0)
 
-        dist = math.hypot(self.diff_pose['x'], self.diff_pose['y'])
+        """dist = math.hypot(self.diff_pose['x'], self.diff_pose['y'])
         MIN_MOVE_DIST = 0.34  # diámetro del robot
         if dist < MIN_MOVE_DIST:
             self.steps_no_move += 1
         else:
-            self.steps_no_move = 0
-
-        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, cov_incr, self.obstacle_distance, self.diff_pose, dist, self.steps_no_move))
+            self.steps_no_move = 0"""
+        
+        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, self.obstacle_distance, self.exploration, self.steps))
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0 # Will be updated at the end of episode

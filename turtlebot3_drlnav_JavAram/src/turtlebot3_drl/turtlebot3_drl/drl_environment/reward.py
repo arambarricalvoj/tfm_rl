@@ -97,28 +97,56 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
 # -------------------------
 # Recompensa de exploración (integrada, devuelve float)
 # -------------------------
-def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obstacle_dist, pose_diff, dist, steps_no_move):
+def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist, exploration, steps):
     # (tu código original arriba sin cambios)
     # [-3.14, 0] no es demasiado fuerte
     #r_yaw = float(-1 * abs(goal_angle))  # Penalize error in orientation towards goal
 
-    # [-4, 0] bien
+    # [-4, 0] bien, normalizado [-1, 0]
     r_vangular = -1 * (action_angular ** 2)  # Penalize high angular velocities
+    r_vangular = r_vangular / 4.0
 
-    # [-20, 0] muy fuerte
+    # [-2 * (3^2), 0] fuerte, normalizado manteniendo importancias [-4, 0]
+    r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2)  # Penalize going Velocities different than max robot velocity
+    r_vlinear = r_vlinear / (18.0/4.0)
+
+    # [-20, 0] muy fuerte, normalizado manteniendo importancias [-5, 0]
     if min_obstacle_dist < MIN_DIST_FOR_PROX_PEN:
-        r_obstacle = -20.0
+        r_obstacle = -5.0
     else:
         r_obstacle = 0.0
 
-    # [-2 * (3^2), 0] fuerte
-    r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2)  # Penalize going Velocities different than max robot velocity
+    r_time = -0.2
 
-    r_cov = 10 * cov_incr
+    # NUEVO
+    # exploracion
+    if exploration['current'] > exploration['previous']:
+        remaining = max(1e-6, 1.0 - exploration['previous'])
+        r_exploration = (((exploration['current']**2) - (exploration['previous']**2)) / remaining) * 10
+    else:
+        r_exploration = - 1.0 * (1.0 - math.exp(- 0.05 * steps['since_last_progress']))
 
-    reward = (r_cov + r_obstacle + r_vangular + r_vlinear - 10) / 1000.0
+    # timeout
+    r_timeout = 0.0
+    if succeed == TIMEOUT:
+        r_timeout = -5.0 * (1 - (steps['progress'] / max(1, steps['total'])))
 
-    # -------------------------
+    # success
+    r_success = 0.0
+    if succeed == SUCCESS:
+        r_success = 5.0 * ((steps['progress'] / max(1, steps['total'])))
+
+    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 1.0
+
+    # collision
+    if succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
+        reward -= 10.0
+    return float(reward)
+
+
+    
+
+    """# -------------------------
     # Penalización por no moverse / girar en sitio
     # -------------------------
     dx = pose_diff['x']
@@ -150,9 +178,7 @@ def get_reward_explore(succeed, action_linear, action_angular, cov_incr, min_obs
 
     if succeed == SUCCESS:
         reward += 2.0
-    elif succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
-        reward -= 1.0
-    return float(reward)
+    el"""
 
 
 # -------------------------
