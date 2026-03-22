@@ -432,6 +432,8 @@ class DRLEnvironment(Node):
         yaw_val = float(self.pose.get('yaw', 0.0)) if isinstance(self.pose, dict) else 0.0
         state.append(yaw_val)
 
+        state.append(float(self.exploration['current']))
+
 
         self.local_step += 1
         if self.local_step <= 30: # Grace period to wait for simulation reset

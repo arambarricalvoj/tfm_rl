@@ -14,7 +14,7 @@ slam_toolbox:
     map_frame: map
     base_frame: base_footprint
     scan_topic: /scan
-    # restamp_tf: true
+    #restamp_tf: true
     use_map_saver: true
     mode: mapping #localization
 

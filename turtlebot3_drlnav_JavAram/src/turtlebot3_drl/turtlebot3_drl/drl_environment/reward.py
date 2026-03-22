@@ -116,7 +116,7 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     else:
         r_obstacle = 0.0
 
-    r_time = -0.2
+    r_time = -0.05
 
     # NUEVO
     # exploracion
@@ -126,21 +126,31 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     else:
         r_exploration = - 1.0 * (1.0 - math.exp(- 0.05 * steps['since_last_progress']))
 
+    # ponderación por distancia al objetivo (95%) 
+    target = 0.95
+    progress_frac = min(1.0, exploration['current'] / target)
+    weight = 0.3 + 0.7 * (progress_frac ** 2)
+    r_exploration *= weight
+
+    # bonus por acercarse al éxito
+    if exploration['current'] >= 0.90 and exploration['previous'] < 0.9:
+        r_exploration += 2.0 * (exploration['current'] - 0.90) * 20.0
+
     # timeout
     r_timeout = 0.0
     if succeed == TIMEOUT:
-        r_timeout = -5.0 * (1 - (steps['progress'] / max(1, steps['total'])))
+        r_timeout = -20.0 #-5.0 * (1 - (steps['progress'] / max(1, steps['total'])))
 
     # success
     r_success = 0.0
     if succeed == SUCCESS:
-        r_success = 5.0 * ((steps['progress'] / max(1, steps['total'])))
+        r_success = 200 #5.0 * ((steps['progress'] / max(1, steps['total'])))
 
-    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 1.0
+    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 10.0
 
     # collision
     if succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
-        reward -= 10.0
+        reward -= 150.0
     return float(reward)
 
 
