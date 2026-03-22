@@ -139,7 +139,7 @@ echo 9 > /tmp/drlnav_current_stage.txt
 ```
 
 ```bash
-ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false
 ```
 o
 ```bash
@@ -151,7 +151,7 @@ ros2 run turtlebot3_drl environment
 ```
 
 ```bash
-ros2 run turtlebot3_drl train_agent ddpg
+ros2 run turtlebot3_drl train_agent td3
 ```
 
 ```bash

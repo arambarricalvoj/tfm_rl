@@ -13,8 +13,8 @@ slam_toolbox:
     odom_frame: odom
     map_frame: map
     base_frame: base_footprint
-    scan_topic: /scan
-    #restamp_tf: true
+    scan_topic: scan
+    # restamp_tf: true
     use_map_saver: true
     mode: mapping #localization
 
@@ -37,6 +37,8 @@ slam_toolbox:
     tf_buffer_duration: 30.
     stack_size_to_use: 40000000 #// program needs a larger stack size to serialize large maps
     enable_interactive_mode: true
+
+    scan_queue_size: 1
 
     # General Parameters
     use_scan_matching: true
