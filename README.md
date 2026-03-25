@@ -64,6 +64,11 @@ ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/h
 
 ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True slam_params_file:=create3_ws/src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml
 
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=True slam_params_file:=mapper_params_online_async.yaml
+
+
+ros2 service call /slam_toolbox/reset slam_toolbox/srv/Reset "{}"
+
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 ros2 run map_processor map_processor

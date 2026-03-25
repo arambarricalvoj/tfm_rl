@@ -5,16 +5,14 @@ docker run -e DISPLAY=$DISPLAY \
            -e NVIDIA_VISIBLE_DEVICES=all \
            -e NVIDIA_DRIVER_CAPABILITIES=all \
            -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
-           -v ./create3_sim_JavAram/create3_ws/:/home/$USER/create3_ws/ \
-           -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_ws/ \
-           -v ./map_proc_ws:/home/$USER/map_proc_ws/ \
+           -v ./mapper_params_online_async.yaml:/home/$USER/mapper_params_online_async.yaml \
            -it \
            --rm \
            --network host \
            --gpus all \
            --runtime=nvidia \
-           --name tfm_rl \
-           arambarricalvoj/tfm_rl:slam_toolbox_lifecycle
+           --name slam_ros2_jazzy_tfm_rl \
+           tfm_rl:ros2_jazzy_slam
            #tfm_rl:slam_toolbox_lifecycle
            # tfm_rl:latest
            # -v ./slam_toolbox:/home/$USER/slam_toolbox/ \

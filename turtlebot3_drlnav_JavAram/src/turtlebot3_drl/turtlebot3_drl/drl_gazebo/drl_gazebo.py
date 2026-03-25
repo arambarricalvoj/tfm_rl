@@ -84,7 +84,7 @@ class DRLGazebo(Node):
         # Initialise client
         self.delete_entity_client       = self.create_client(DeleteEntity, 'delete_entity')
         # self.spawn_entity_client        = self.create_client(SpawnEntity, 'spawn_entity')
-        # self.reset_simulation_client    = self.create_client(Empty, 'reset_simulation')
+        self.reset_simulation_client    = self.create_client(Empty, 'reset_simulation')
         self.reset_world_client         = self.create_client(Empty, '/reset_world')
         self.gazebo_pause               = self.create_client(Empty, '/pause_physics')
 
@@ -285,17 +285,23 @@ class DRLGazebo(Node):
     
     def reset_simulation(self):
         # 0. Parar el robot
-        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
+        """self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
 
         # 1. Pausar Gazebo ANTES de tocar slam_toolbox
+        self.get_logger().info("SOLICITO PAUSA.")
         self.pause_physics = self.create_client(Empty, '/pause_physics')
-        self.pause_physics.call_async(Empty.Request())
+        future = self.pause_physics.call_async(Empty.Request())
+        rclpy.spin_until_future_complete(self, future)
+        self.get_logger().info("HE PAUSADO.")
 
         # 2. Resetear Gazebo
+        self.get_logger().info("SOLICITO RESET.")
         req = Empty.Request()
         while not self.reset_world_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('reset service not available, waiting again...')
-        self.reset_world_client.call_async(req)
+        future = self.reset_world_client.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        self.get_logger().info("HE RESETEADO.")
 
         # 3. Reiniciar SLAM Toolbox
         self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
@@ -304,15 +310,17 @@ class DRLGazebo(Node):
 
         # 5. Reanudar Gazebo
         self.unpause_physics = self.create_client(Empty, '/unpause_physics')
-        self.unpause_physics.call_async(Empty.Request())
+        future = self.unpause_physics.call_async(Empty.Request())
+        rclpy.spin_until_future_complete(self, future)"""
 
-
-        #self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5) #Reset robot velocity to 0
-        #rclpy.spin_until_future_complete(self, future)
-        #if future.result() is not None:
-        #    self.get_logger().info('Simulation reset successful.')
-        #else:
-        #    self.get_logger().error('Failed to reset simulation.')
+        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
+        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CLEANUP)
+        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5) #Reset robot velocity to 0
+        req = Empty.Request()
+        while not self.reset_simulation_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('reset service not available, waiting again...')
+        self.reset_simulation_client.call_async(req)
+        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CONFIGURE)
     
     def move_robot(self, linear_x=0.0, angular_z=0.0, duration=0.1):
         msg = Twist()
