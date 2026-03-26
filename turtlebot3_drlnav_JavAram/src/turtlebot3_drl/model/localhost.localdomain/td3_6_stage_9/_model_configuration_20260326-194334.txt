@@ -1,0 +1,241 @@
+device = cuda
+simulation_speed = 1
+state_size = 1656
+action_size = 2
+hidden_size = 512
+input_size = 1656
+batch_size = 128
+buffer_size = 1000000
+discount_factor = 0.99
+learning_rate = 0.00030000000000000003
+tau = 0.003
+step_time = 0.1
+loss_function = <function smooth_l1_loss at 0x7aae5a767eb0>
+epsilon = 1.0
+epsilon_decay = 0.9995
+epsilon_minimum = 0.05
+reward_function = explore
+backward_enabled = False
+stacking_enabled = False
+stack_depth = 3
+frame_skip = 4
+networks = [Actor(
+  (cnn_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_prob): Sequential(
+    (0): Conv2d(1, 16, kernel_size=(5, 5), stride=(2, 2), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(16, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=20, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_lem): Sequential(
+    (0): Conv2d(1, 16, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(16, 1, kernel_size=(6, 6), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=20, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (fa1): Linear(in_features=64, out_features=512, bias=True)
+  (fa2): Linear(in_features=512, out_features=512, bias=True)
+  (fa3): Linear(in_features=512, out_features=2, bias=True)
+), Actor(
+  (cnn_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_prob): Sequential(
+    (0): Conv2d(1, 16, kernel_size=(5, 5), stride=(2, 2), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(16, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=20, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_lem): Sequential(
+    (0): Conv2d(1, 16, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(16, 1, kernel_size=(6, 6), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=20, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (fa1): Linear(in_features=64, out_features=512, bias=True)
+  (fa2): Linear(in_features=512, out_features=512, bias=True)
+  (fa3): Linear(in_features=512, out_features=2, bias=True)
+), Critic(
+  (cnn_q1_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_q2_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_q1_prob): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q1_lem): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q2_prob): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q2_lem): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (l1): Linear(in_features=66, out_features=512, bias=True)
+  (l2): Linear(in_features=512, out_features=512, bias=True)
+  (l3): Linear(in_features=512, out_features=1, bias=True)
+  (l4): Linear(in_features=66, out_features=512, bias=True)
+  (l5): Linear(in_features=512, out_features=512, bias=True)
+  (l6): Linear(in_features=512, out_features=1, bias=True)
+), Critic(
+  (cnn_q1_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_q2_laser): Sequential(
+    (0): Conv1d(1, 16, kernel_size=(7,), stride=(3,))
+    (1): ReLU()
+    (2): Conv1d(16, 1, kernel_size=(6,), stride=(1,), padding=(1,))
+    (3): ReLU()
+    (4): AdaptiveMaxPool1d(output_size=20)
+    (5): Flatten(start_dim=1, end_dim=-1)
+  )
+  (cnn_q1_prob): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q1_lem): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q2_prob): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (cnn_q2_lem): Sequential(
+    (0): Conv2d(1, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (1): ReLU()
+    (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): ReLU()
+    (4): AdaptiveMaxPool2d(output_size=(4, 5))
+    (5): Flatten(start_dim=1, end_dim=-1)
+    (6): Linear(in_features=320, out_features=20, bias=True)
+    (7): ReLU()
+  )
+  (l1): Linear(in_features=66, out_features=512, bias=True)
+  (l2): Linear(in_features=512, out_features=512, bias=True)
+  (l3): Linear(in_features=512, out_features=1, bias=True)
+  (l4): Linear(in_features=66, out_features=512, bias=True)
+  (l5): Linear(in_features=512, out_features=512, bias=True)
+  (l6): Linear(in_features=512, out_features=1, bias=True)
+)]
+iteration = 0
+noise = <turtlebot3_drl.common.ounoise.OUNoise object at 0x7aadd20c88e0>
+policy_noise = 0.2
+noise_clip = 0.5
+policy_freq = 2
+last_actor_loss = 0
+actor_optimizer = AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    eps: 1e-08
+    foreach: None
+    lr: 0.00030000000000000003
+    maximize: False
+    weight_decay: 0.01
+)
+critic_optimizer = AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    eps: 1e-08
+    foreach: None
+    lr: 0.00030000000000000003
+    maximize: False
+    weight_decay: 0.01
+)
+

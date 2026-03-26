@@ -146,11 +146,11 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     if succeed == SUCCESS:
         r_success = 200 #5.0 * ((steps['progress'] / max(1, steps['total'])))
 
-    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 10.0
+    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 100.0
 
     # collision
     if succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
-        reward -= 150.0
+        reward -= 15.0
     return float(reward)
 
 
