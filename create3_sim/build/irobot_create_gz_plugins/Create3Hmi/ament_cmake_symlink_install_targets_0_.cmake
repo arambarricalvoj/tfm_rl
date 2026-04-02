@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/javierac/create3_ws/build/irobot_create_gz_plugins/Create3Hmi/libCreate3Hmi.so" "TARGETS" "Create3Hmi" "DESTINATION" "share/irobot_create_gz_plugins/lib")

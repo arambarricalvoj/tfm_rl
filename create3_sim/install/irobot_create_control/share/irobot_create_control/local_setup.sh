@@ -1,0 +1,1 @@
+/home/javierac/create3_ws/build/irobot_create_control/ament_cmake_environment_hooks/local_setup.sh

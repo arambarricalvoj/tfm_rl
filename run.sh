@@ -5,7 +5,8 @@ docker run -e DISPLAY=$DISPLAY \
            -e NVIDIA_VISIBLE_DEVICES=all \
            -e NVIDIA_DRIVER_CAPABILITIES=all \
            -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
-           -v ./create3_sim_JavAram/create3_ws/:/home/$USER/create3_ws/ \
+           -v ./create3_sim_JavAram/create3_ws/:/home/$USER/humble_create3_ws/ \
+           -v ./create3_sim/:/home/$USER/create3_ws/ \
            -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_ws/ \
            -v ./map_proc_ws:/home/$USER/map_proc_ws/ \
            -it \
@@ -14,7 +15,7 @@ docker run -e DISPLAY=$DISPLAY \
            --gpus all \
            --runtime=nvidia \
            --name tfm_rl \
-           arambarricalvoj/tfm_rl:slam_toolbox_lifecycle
+           tfm_rl:jazzy
            #tfm_rl:slam_toolbox_lifecycle
            # tfm_rl:latest
            # -v ./slam_toolbox:/home/$USER/slam_toolbox/ \

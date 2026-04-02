@@ -1,0 +1,3 @@
+/home/javierac/create3_ws/install/irobot_create_toolbox/lib/libirobot_create_toolbox.so
+/home/javierac/create3_ws/install/irobot_create_toolbox/share/irobot_create_toolbox/cmake/export_irobot_create_toolboxExport.cmake
+/home/javierac/create3_ws/install/irobot_create_toolbox/share/irobot_create_toolbox/cmake/export_irobot_create_toolboxExport-noconfig.cmake
