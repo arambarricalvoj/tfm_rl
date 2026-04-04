@@ -97,44 +97,7 @@ class DRLGazebo(Node):
 
     """*******************************************************************************
     ** Callback functions and relevant functions
-    *******************************************************************************"""  
-    """def nodoa_kudeatu(self, nodoa, transition_id):
-        self.get_logger().info(f'/{ nodoa }/change_state')
-        self.change_state = self.create_client(ChangeState , f'/{ nodoa }/change_state')
-        while not self.change_state.wait_for_service (timeout_sec =1.0):
-            self.get_logger().info(f'/{ nodoa }/change_state zerbitzua prest egoteko zain...')
-        
-        request = ChangeState.Request()
-        request.transition.id = transition_id
-        future = self.change_state.call_async(request)
-        rclpy. spin_until_future_complete (self , future)
-        if future.result() is not None:
-            self.get_logger().info(f'Trantsizioa ongi burutu da: {nodoa}, {transition_id}')
-        else:
-            self.get_logger().error('Errorea trantsizioa egitean.')"""
-
-    def nodoa_kudeatu(self, nodoa, transition_id):
-        self.get_logger().info(f'/{nodoa}/change_state')
-        client = self.create_client(ChangeState, f'/{nodoa}/change_state')
-
-        while not client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info(f'/{nodoa}/change_state zerbitzua prest egoteko zain...')
-
-        request = ChangeState.Request()
-        request.transition.id = transition_id
-        future = client.call_async(request)
-
-        # Opcional: log cuando termine, pero SIN bloquear
-        def done_cb(fut):
-            if fut.result() is not None:
-                self.get_logger().info(f'Trantsizioa ongi burutu da: {nodoa}, {transition_id}')
-            else:
-                self.get_logger().error(f'Errorea trantsizioa egitean: {nodoa}, {transition_id}')
-
-        future.add_done_callback(done_cb)
-
-
-    
+    *******************************************************************************"""      
     def init_callback(self):
        self.delete_entity()
        self.reset_simulation()
@@ -266,61 +229,110 @@ class DRLGazebo(Node):
         #self.goal_y = float(0.0)
         self.publish_callback()
 
-    """def reset_simulation(self):
-        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5) #Reset robot velocity to 0
-        req = Empty.Request()
-        while not self.reset_simulation_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('reset service not available, waiting again...')
-        self.reset_simulation_client.call_async(req)
+    def nodoa_kudeatu(self, nodoa, transition_id, next_step=None):
+        self.get_logger().info(f'/{nodoa}/change_state → {transition_id}')
 
+        client = self.create_client(ChangeState, f'/{nodoa}/change_state')
+
+        if not client.wait_for_service(timeout_sec=0.5):
+            self.get_logger().warn(f'{nodoa}/change_state no disponible, reintentando...')
+            self.create_timer(0.5, lambda: self.nodoa_kudeatu(nodoa, transition_id, next_step))
+            return
+
+        request = ChangeState.Request()
+        request.transition.id = transition_id
+
+        future = client.call_async(request)
+
+        def done_cb(fut):
+            if fut.result() is not None:
+                self.get_logger().info(f'Transición OK: {nodoa} → {transition_id}')
+            else:
+                self.get_logger().error(f'Error en transición: {nodoa} → {transition_id}')
+
+            if next_step is not None:
+                next_step()
+
+        future.add_done_callback(done_cb)
+
+
+    # -------------------------
+    # NUEVO: Pausar Gazebo
+    # -------------------------
+    def pause_gazebo(self, next_step=None):
         self.pause_physics = self.create_client(Empty, '/pause_physics')
         self.pause_physics.call_async(Empty.Request())
 
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CLEANUP)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CONFIGURE)
+        if not self.pause_physics.wait_for_service(timeout_sec=0.5):
+            self.get_logger().warn('pause_physics no disponible, reintentando...')
+            self.create_timer(0.5, lambda: self.pause_gazebo(next_step))
+            return
 
-        self.unpause_physics = self.create_client(Empty, '/unpause_physics')
-        self.unpause_physics.call_async(Empty.Request())"""
-    
-    def reset_simulation(self):
-        # 0. Parar el robot
-        """self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
-
-        # 1. Pausar Gazebo ANTES de tocar slam_toolbox
-        self.get_logger().info("SOLICITO PAUSA.")
-        self.pause_physics = self.create_client(Empty, '/pause_physics')
         future = self.pause_physics.call_async(Empty.Request())
-        rclpy.spin_until_future_complete(self, future)
-        self.get_logger().info("HE PAUSADO.")
 
-        # 2. Resetear Gazebo
-        self.get_logger().info("SOLICITO RESET.")
-        req = Empty.Request()
-        while not self.reset_world_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('reset service not available, waiting again...')
-        future = self.reset_world_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
-        self.get_logger().info("HE RESETEADO.")
+        def done_cb(fut):
+            self.get_logger().info("Gazebo PAUSADO.")
+            if next_step:
+                next_step()
 
-        # 3. Reiniciar SLAM Toolbox
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CLEANUP)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CONFIGURE)
+        future.add_done_callback(done_cb)
 
-        # 5. Reanudar Gazebo
+
+    def unpause_gazebo(self):
         self.unpause_physics = self.create_client(Empty, '/unpause_physics')
-        future = self.unpause_physics.call_async(Empty.Request())
-        rclpy.spin_until_future_complete(self, future)"""
+        self.unpause_physics.call_async(Empty.Request())
 
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_DEACTIVATE)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CLEANUP)
-        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5) #Reset robot velocity to 0
+        if not self.unpause_physics.wait_for_service(timeout_sec=0.5):
+            self.get_logger().warn('unpause_physics no disponible, reintentando...')
+            self.create_timer(0.5, self.unpause_gazebo)
+            return
+
+        self.unpause_physics.call_async(Empty.Request())
+        self.get_logger().info("Gazebo REANUDADO.")
+
+
+    # -------------------------
+    # RESET SIMULATION
+    # -------------------------
+    def reset_simulation(self):
+        # Parar robot
+        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
+
+        # 1) DEACTIVATE
+        self.nodoa_kudeatu(
+            'slam_toolbox',
+            Transition.TRANSITION_DEACTIVATE,
+            next_step=lambda: self.nodoa_kudeatu(
+                'slam_toolbox',
+                Transition.TRANSITION_CLEANUP,
+                next_step=self._reset_simulation_async
+            )
+        )
+
+
+    def _reset_simulation_async(self):
         req = Empty.Request()
-        while not self.reset_simulation_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('reset service not available, waiting again...')
-        self.reset_simulation_client.call_async(req)
-        self.nodoa_kudeatu('slam_toolbox', Transition.TRANSITION_CONFIGURE)
+        future = self.reset_world_client.call_async(req)
+
+        def done_cb(fut):
+            self.get_logger().info("RESET SIMULATION completado.")
+            self._configure_and_activate()
+
+        future.add_done_callback(done_cb)
+
+
+    def _configure_and_activate(self):
+        # 4) CONFIGURE
+        self.nodoa_kudeatu(
+            'slam_toolbox',
+            Transition.TRANSITION_CONFIGURE,
+            next_step=self._episode_ready
+        )
+
+
+    def _episode_ready(self):
+        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")
+
     
     def move_robot(self, linear_x=0.0, angular_z=0.0, duration=0.1):
         msg = Twist()
