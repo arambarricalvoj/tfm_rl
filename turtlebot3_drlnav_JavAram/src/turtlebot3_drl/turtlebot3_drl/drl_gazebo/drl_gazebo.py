@@ -25,6 +25,7 @@ import math
 
 from gazebo_msgs.srv import DeleteEntity, SpawnEntity
 from std_srvs.srv import Empty
+from std_srvs.srv import Trigger
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 
@@ -87,6 +88,8 @@ class DRLGazebo(Node):
         self.reset_simulation_client    = self.create_client(Empty, 'reset_simulation')
         self.reset_world_client         = self.create_client(Empty, '/reset_world')
         self.gazebo_pause               = self.create_client(Empty, '/pause_physics')
+
+        self.reset_slam_client = self.create_client(Trigger, 'reset_slam')
 
         # Initialise servers
         self.task_succeed_server    = self.create_service(RingGoal, 'task_succeed', self.task_succeed_callback)
@@ -294,12 +297,68 @@ class DRLGazebo(Node):
     # -------------------------
     # RESET SIMULATION
     # -------------------------
-    def reset_simulation(self):
+    """def reset_simulation(self):
         # Parar robot
         self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
 
-        # 1) DEACTIVATE
+        # 1) Pausar Gazebo
+        self.pause_gazebo(
+            next_step=lambda: self.nodoa_kudeatu(
+                'slam_toolbox',
+                Transition.TRANSITION_DEACTIVATE,
+                next_step=lambda: self.nodoa_kudeatu(
+                    'slam_toolbox',
+                    Transition.TRANSITION_CLEANUP,
+                    next_step=self._reset_simulation_async
+                )
+            )
+        )
+
+    def _reset_simulation_async(self):
+        req = Empty.Request()
+        future = self.reset_simulation_client.call_async(req)
+
+        def done_cb(fut):
+            self.get_logger().info("RESET SIMULATION completado.")
+            #time.sleep(0.5)
+            self._configure_and_activate()
+
+        future.add_done_callback(done_cb)
+
+    def _configure_and_activate(self):
         self.nodoa_kudeatu(
+            'slam_toolbox',
+            Transition.TRANSITION_CONFIGURE,
+            next_step=lambda: self._episode_ready
+        )
+
+    def _episode_ready(self):
+        self.unpause_gazebo()
+        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")"""
+
+    def reset_simulation(self):
+        # 1. Parar el robot
+        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
+
+        # 2. Llamar al servicio de reset de SLAM
+        while not self.reset_slam_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("Esperando al servicio /reset_slam...")
+
+        slam_req = Trigger.Request()
+        slam_future = self.reset_slam_client.call_async(slam_req)
+
+        # 3. Llamar al servicio de reset de Gazebo
+        while not self.reset_simulation_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("Esperando al servicio /reset_simulation...")
+
+        gazebo_req = Empty.Request()
+        gazebo_future = self.reset_simulation_client.call_async(gazebo_req)
+
+        self.get_logger().info("RESET SIMULATION completado.")
+
+
+        # 1) DEACTIVATE
+        """self.nodoa_kudeatu(
             'slam_toolbox',
             Transition.TRANSITION_DEACTIVATE,
             next_step=lambda: self.nodoa_kudeatu(
@@ -307,12 +366,12 @@ class DRLGazebo(Node):
                 Transition.TRANSITION_CLEANUP,
                 next_step=self._reset_simulation_async
             )
-        )
+        
 
 
     def _reset_simulation_async(self):
         req = Empty.Request()
-        future = self.reset_world_client.call_async(req)
+        future = self.reset_simulation_client.call_async(req)
 
         def done_cb(fut):
             self.get_logger().info("RESET SIMULATION completado.")
@@ -331,8 +390,7 @@ class DRLGazebo(Node):
 
 
     def _episode_ready(self):
-        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")
-
+        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")"""
     
     def move_robot(self, linear_x=0.0, angular_z=0.0, duration=0.1):
         msg = Twist()

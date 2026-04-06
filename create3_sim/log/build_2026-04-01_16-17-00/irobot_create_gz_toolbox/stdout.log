@@ -1,0 +1,44 @@
+[ 11%] Built target irobot_create_gz_pose_republisher_lib
+[ 22%] Built target irobot_create_gz_interface_buttons_lib
+[ 66%] Built target irobot_create_gz_sensors_lib
+[ 77%] Built target pose_republisher_node
+[ 88%] Built target interface_buttons_node
+[100%] Built target sensors_node
+-- Install configuration: ""
+-- Execute custom install script
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/libirobot_create_gz_pose_republisher_lib.so
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/libirobot_create_gz_sensors_lib.so
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/libirobot_create_gz_interface_buttons_lib.so
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/irobot_create_gz_toolbox/pose_republisher_node
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/irobot_create_gz_toolbox/sensors_node
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/lib/irobot_create_gz_toolbox/interface_buttons_node
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/interface_buttons/interface_buttons_node.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/pose_republisher/pose_republisher.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/bumper.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/cliff.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/ir_intensity.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/ir_opcode.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/mouse.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/sensors_node.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/sensors/wheel_drop.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/include/irobot_create_gz_toolbox/utils.hpp
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/library_path.sh
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/library_path.dsv
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/ament_index/resource_index/package_run_dependencies/irobot_create_gz_toolbox
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/ament_index/resource_index/parent_prefix_path/irobot_create_gz_toolbox
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/ament_prefix_path.sh
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/ament_prefix_path.dsv
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/path.sh
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/environment/path.dsv
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/local_setup.bash
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/local_setup.sh
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/local_setup.zsh
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/local_setup.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/package.dsv
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/ament_index/resource_index/packages/irobot_create_gz_toolbox
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/cmake/ament_cmake_export_libraries-extras.cmake
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/cmake/irobot_create_gz_toolboxConfig.cmake
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/cmake/irobot_create_gz_toolboxConfig-version.cmake
+-- Up-to-date symlink: /home/javierac/create3_ws/install/irobot_create_gz_toolbox/share/irobot_create_gz_toolbox/package.xml

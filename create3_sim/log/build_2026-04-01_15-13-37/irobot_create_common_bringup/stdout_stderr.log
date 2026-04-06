@@ -1,0 +1,77 @@
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 2.5.4 (/opt/ros/jazzy/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found ament_lint_auto: 0.17.2 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+-- Added test 'flake8' to check Python code syntax and style conventions
+-- Configured 'flake8' exclude dirs and/or files: 
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done (1.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/javierac/create3_ws/build/irobot_create_common_bringup
+Built target ament_cmake_python_symlink_irobot_create_common_bringup
+running egg_info
+creating irobot_create_common_bringup.egg-info
+writing irobot_create_common_bringup.egg-info/PKG-INFO
+writing dependency_links to irobot_create_common_bringup.egg-info/dependency_links.txt
+writing top-level names to irobot_create_common_bringup.egg-info/top_level.txt
+writing manifest file 'irobot_create_common_bringup.egg-info/SOURCES.txt'
+reading manifest file 'irobot_create_common_bringup.egg-info/SOURCES.txt'
+writing manifest file 'irobot_create_common_bringup.egg-info/SOURCES.txt'
+Built target ament_cmake_python_build_irobot_create_common_bringup_egg
+-- Install configuration: ""
+-- Execute custom install script
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/hazard_vector_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/ir_intensity_vector_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/kidnap_estimator_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/mock_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/robot_state_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/ui_mgr_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/config/wheel_status_params.yaml
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/launch/create3_nodes.launch.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/launch/dock_description.launch.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/launch/robot_description.launch.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/launch/rviz2.launch.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/rviz/irobot_create_view.rviz
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/rviz/irobot_logo.jpg
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/pythonpath.sh
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/pythonpath.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup-3.0.4-py3.12.egg-info/PKG-INFO
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup-3.0.4-py3.12.egg-info/SOURCES.txt
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup-3.0.4-py3.12.egg-info/dependency_links.txt
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup-3.0.4-py3.12.egg-info/top_level.txt
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/__init__.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/namespace.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/offset.py
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/ament_index/resource_index/package_run_dependencies/irobot_create_common_bringup
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/ament_index/resource_index/parent_prefix_path/irobot_create_common_bringup
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/ament_prefix_path.sh
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/ament_prefix_path.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/path.sh
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/environment/path.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/local_setup.bash
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/local_setup.sh
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/local_setup.zsh
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/local_setup.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/package.dsv
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/ament_index/resource_index/packages/irobot_create_common_bringup
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/cmake/irobot_create_common_bringupConfig.cmake
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/cmake/irobot_create_common_bringupConfig-version.cmake
+-- Symlinking: /home/javierac/create3_ws/install/irobot_create_common_bringup/share/irobot_create_common_bringup/package.xml
+Listing '/home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup'...
+Compiling '/home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/__init__.py'...
+Compiling '/home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/namespace.py'...
+Compiling '/home/javierac/create3_ws/install/irobot_create_common_bringup/lib/python3.12/site-packages/irobot_create_common_bringup/offset.py'...

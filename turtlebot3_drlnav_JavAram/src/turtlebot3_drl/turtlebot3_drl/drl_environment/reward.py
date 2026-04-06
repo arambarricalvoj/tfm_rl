@@ -104,11 +104,12 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
 
     # [-4, 0] bien, normalizado [-1, 0]
     r_vangular = -1 * (action_angular ** 2)  # Penalize high angular velocities
-    r_vangular = r_vangular / 4.0
+    #r_vangular = r_vangular / 4.0
 
     # [-2 * (3^2), 0] fuerte, normalizado manteniendo importancias [-4, 0]
-    r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2)  # Penalize going Velocities different than max robot velocity
-    r_vlinear = r_vlinear / (18.0/4.0)
+    #r_vlinear = -1 * (((0.3 - action_linear) * 10) ** 2)  # Penalize going Velocities different than max robot velocity
+    r_vlinear = -1.5 * ((0.3 - action_linear) / 0.3)**2
+    #r_vlinear = r_vlinear / (18.0/4.0)
 
     # [-20, 0] muy fuerte, normalizado manteniendo importancias [-5, 0]
     if min_obstacle_dist < MIN_DIST_FOR_PROX_PEN:
@@ -116,21 +117,22 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     else:
         r_obstacle = 0.0
 
-    r_time = -0.05
+    r_time = -0.1
 
     # NUEVO
     # exploracion
     if exploration['current'] > exploration['previous']:
         remaining = max(1e-6, 1.0 - exploration['previous'])
-        r_exploration = (((exploration['current']**2) - (exploration['previous']**2)) / remaining) * 10
+        #r_exploration = (((exploration['current']**2) - (exploration['previous']**2)) / remaining) * 10
+        r_exploration = (exploration['current'] - exploration['previous']) * 50.0
     else:
         r_exploration = - 1.0 * (1.0 - math.exp(- 0.05 * steps['since_last_progress']))
 
     # ponderación por distancia al objetivo (95%) 
-    target = 0.95
-    progress_frac = min(1.0, exploration['current'] / target)
-    weight = 0.3 + 0.7 * (progress_frac ** 2)
-    r_exploration *= weight
+    #target = 0.95
+    #progress_frac = min(1.0, exploration['current'] / target)
+    #weight = 0.3 + 0.7 * (progress_frac ** 2)
+    #r_exploration *= weight
 
     # bonus por acercarse al éxito
     if exploration['current'] >= 0.90 and exploration['previous'] < 0.9:
@@ -139,18 +141,21 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     # timeout
     r_timeout = 0.0
     if succeed == TIMEOUT:
-        r_timeout = -20.0 #-5.0 * (1 - (steps['progress'] / max(1, steps['total'])))
+        r_timeout = -100.0 #-5.0 * (1 - (steps['progress'] / max(1, steps['total'])))
+        #r_timeout = -20.0 * (1 - progress_frac)
+
+    # collision
+    r_collision = 0.0
+    if succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
+        r_collision = -150.0
 
     # success
     r_success = 0.0
     if succeed == SUCCESS:
         r_success = 200 #5.0 * ((steps['progress'] / max(1, steps['total'])))
 
-    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success) / 100.0
+    reward = (r_vangular + r_vlinear + r_obstacle + r_time + r_exploration + r_timeout + r_success + r_collision) / 100.0
 
-    # collision
-    if succeed in (COLLISION_OBSTACLE, COLLISION_WALL):
-        reward -= 15.0
     return float(reward)
 
 

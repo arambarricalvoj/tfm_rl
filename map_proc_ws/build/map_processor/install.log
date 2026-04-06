@@ -1,7 +1,9 @@
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__init__.py
+/home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/laser_resync.py
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/map_node.py
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/map_processing_utils.py
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__pycache__/__init__.cpython-310.pyc
+/home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__pycache__/laser_resync.cpython-310.pyc
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__pycache__/map_node.cpython-310.pyc
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor/__pycache__/map_processing_utils.cpython-310.pyc
 /home/javierac/map_proc_ws/install/map_processor/share/ament_index/resource_index/packages/map_processor
@@ -13,4 +15,5 @@
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor-0.0.0-py3.10.egg-info/requires.txt
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor-0.0.0-py3.10.egg-info/zip-safe
 /home/javierac/map_proc_ws/install/map_processor/lib/python3.10/site-packages/map_processor-0.0.0-py3.10.egg-info/top_level.txt
+/home/javierac/map_proc_ws/install/map_processor/lib/map_processor/laser_resync
 /home/javierac/map_proc_ws/install/map_processor/lib/map_processor/map_processor

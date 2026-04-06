@@ -1,3 +1,4 @@
 [console_scripts]
+laser_resync = map_processor.laser_resync:main
 map_processor = map_processor.map_node:main
 

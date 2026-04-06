@@ -1,0 +1,16 @@
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/lib/libCreate3Hmi.so
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/ament_index/resource_index/package_run_dependencies/irobot_create_gz_plugins
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/ament_index/resource_index/parent_prefix_path/irobot_create_gz_plugins
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/environment/ament_prefix_path.sh
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/environment/ament_prefix_path.dsv
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/environment/path.sh
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/environment/path.dsv
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/local_setup.bash
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/local_setup.sh
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/local_setup.zsh
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/local_setup.dsv
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/package.dsv
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/ament_index/resource_index/packages/irobot_create_gz_plugins
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/cmake/irobot_create_gz_pluginsConfig.cmake
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/cmake/irobot_create_gz_pluginsConfig-version.cmake
+/home/javierac/create3_ws/install/irobot_create_gz_plugins/share/irobot_create_gz_plugins/package.xml

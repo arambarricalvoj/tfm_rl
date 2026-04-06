@@ -10,6 +10,7 @@ setup.py
 ../../build/map_processor/map_processor.egg-info/top_level.txt
 ../../build/map_processor/map_processor.egg-info/zip-safe
 map_processor/__init__.py
+map_processor/laser_resync.py
 map_processor/map_node.py
 map_processor/map_processing_utils.py
 resource/map_processor

@@ -433,6 +433,7 @@ class DRLEnvironment(Node):
         state.append(yaw_val)
 
         state.append(float(self.exploration['current']))
+        state.append(float(self.obstacle_distance))
 
 
         self.local_step += 1

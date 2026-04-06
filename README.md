@@ -129,6 +129,7 @@ source /ros2_ws/install/setup.bash
 source /home/$USER/create3_ws/install/setup.bash
 source turtlebot3_drlnav_ws/setup_drlnav.sh
 source turtlebot3_drlnav_ws/install/setup.bash
+source /home/$USER$/map_proc_ws/install/setup.bash
 ```
 
 
@@ -161,6 +162,10 @@ ros2 run turtlebot3_drl train_agent td3
 
 ```bash
 ros2 run turtlebot3_drl gazebo_goals
+```
+
+```bash
+ros2 run map_processor reset_slam
 ```
 
 saving data for episode: 1, location: /home/javierac/turtlebot3_drlnav_ws/src/turtlebot3_drl/model/8130905e3c29/ddpg_0_stage_9
