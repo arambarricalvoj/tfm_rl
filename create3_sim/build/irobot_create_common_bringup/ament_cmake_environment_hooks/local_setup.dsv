@@ -1,3 +1,0 @@
-source;share/irobot_create_common_bringup/environment/ament_prefix_path.sh
-source;share/irobot_create_common_bringup/environment/path.sh
-source;share/irobot_create_common_bringup/environment/pythonpath.sh
