@@ -13,6 +13,7 @@ map_processor/__init__.py
 map_processor/laser_resync.py
 map_processor/map_node.py
 map_processor/map_processing_utils.py
+map_processor/reset_slam.py
 resource/map_processor
 test/test_copyright.py
 test/test_flake8.py

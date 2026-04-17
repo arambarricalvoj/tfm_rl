@@ -111,6 +111,10 @@ class DRLEnvironment(Node):
 
         self.map_sub = self.create_subscription( OccupancyGrid, '/map', self.map_callback, 10 ) 
         self.processor = MapProcessor()
+        # ---- Elegir qué mapas activar ----
+        self.processor.enable_prob_map = False
+        self.processor.enable_lem = False
+        self.processor.enable_global_reduced_map = True
         """try:
             self.processor.start_plot()
         except Exception as e:
@@ -412,28 +416,40 @@ class DRLEnvironment(Node):
         state.append(float(action_angular_previous))
 
         # --- ProbExplored reducido (float, contiene -1.0 para robot) ---
-        prob = self.processor.get_prob_explored_map_copy(as_uint8=False)
+        """prob = self.processor.get_prob_explored_map_copy(as_uint8=False)
         if prob is None:
             # fallback: usar tamaño del mapa reducido esperado (prob_explored_bbox_size)
             H, W = getattr(self.processor, "prob_explored_bbox_size", (24, 24))
             prob = np.zeros((H, W), dtype=np.float32)
         prob_flat = np.asarray(prob, dtype=np.float32).ravel()
         # añadir los valores individuales (Python floats)
-        state.extend(prob_flat.astype(float).tolist())
+        state.extend(prob_flat.astype(float).tolist())"""
+
+        # Global Reduced Map
+        gm = self.processor.get_global_downsampled_map_copy()
+        if gm is None:
+            # fallback: usar tamaño del mapa reducido esperado (prob_explored_bbox_size)
+            H, W = getattr(self.processor, "prob_explored_bbox_size", (24, 24))
+            gm = np.zeros((H, W), dtype=np.float32)
+        gm_flat = np.asarray(gm, dtype=np.float32).ravel()
+        # añadir los valores individuales (Python floats)
+        state.extend(gm_flat.astype(float).tolist())
 
         # --- LEM ---
-        lem = self.processor.get_lem_copy(generate_if_missing=True)
-        if lem is None:
-            H, W = getattr(self.processor, "lem_size", (24, 24))
-            lem = np.full((H, W), 128, dtype=np.uint8)
-        lem_mapped = (lem.astype(np.float32) / 255.0).ravel()
-        state.extend(lem_mapped.astype(float).tolist())
+        #lem = self.processor.get_lem_copy(generate_if_missing=True)
+        #if lem is None:
+        #    H, W = getattr(self.processor, "lem_size", (24, 24))
+        #    lem = np.full((H, W), 128, dtype=np.uint8)
+        #lem_mapped = (lem.astype(np.float32) / 255.0).ravel()
+        #state.extend(lem_mapped.astype(float).tolist())
 
         yaw_val = float(self.pose.get('yaw', 0.0)) if isinstance(self.pose, dict) else 0.0
         state.append(yaw_val)
 
         state.append(float(self.exploration['current']))
         state.append(float(self.obstacle_distance))
+
+        
 
 
         self.local_step += 1

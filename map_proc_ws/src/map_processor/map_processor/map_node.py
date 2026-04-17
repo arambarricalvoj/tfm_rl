@@ -14,6 +14,11 @@ class SlamListener(Node):
         # ---- inicializar MapProcessor ----
         # puedes pasar parámetros opcionales si la clase los acepta (umbral, etc.)
         self.processor = MapProcessor()
+        # ---- Elegir qué mapas activar ----
+        self.processor.enable_prob_map = False
+        self.processor.enable_lem = False
+        self.processor.enable_global_reduced_map = True
+
 
         try:
             self.processor.start_plot()

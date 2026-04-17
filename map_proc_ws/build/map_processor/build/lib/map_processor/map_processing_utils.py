@@ -58,7 +58,7 @@ class MapProcessor:
         self.prob_kernel_type = "uniform"    # "uniform" o "gaussian"
         self.prob_kernel = None              # si no es None, usar kernel 2D personalizado (se normaliza)
         self.prob_return_uint8 = False       # si True devuelve 0..255 uint8, si False devuelve float 0..1
-        self.prob_robot_marker_size = 5
+        self.prob_robot_marker_size = 3
 
         # ---------- Local Egocentric Map ----------
         # tamaño deseado de la LEM en celdas (H, W). Por defecto 24x24.
@@ -77,6 +77,10 @@ class MapProcessor:
         self._im_list = [None, None, None]
         self._plot_lock = threading.Lock()
 
+        # Flags para activar/desactivar mapas derivados
+        self.enable_prob_map = True
+        self.enable_lem = True
+        self.enable_global_reduced_map = True
 
     # ---------- Actualización del mapa ----------
     def update_from_occupancy_grid(self, msg) -> None:
@@ -194,7 +198,34 @@ class MapProcessor:
             gem[sub != UNKNOWN] = 255
             self.explored_map = gem
 
-        self.compute_prob_explored_map(out_size=self.prob_explored_bbox_size,
+        # --- Mapa probabilístico reducido ---
+        if self.enable_prob_map:
+            self.compute_prob_explored_map(
+                out_size=self.prob_explored_bbox_size,
+                neighborhood_scale=self.prob_neighborhood_scale,
+                kernel=None,
+                kernel_type=self.prob_kernel_type,
+                return_uint8=False
+            )
+
+        # --- LEM ---
+        if self.enable_lem:
+            try:
+                if self.robot_pose is not None:
+                    self.generate_lem(pad=0)
+            except Exception:
+                self.lem_map = None
+
+        # --- Nuevo mapa global reducido ---
+        if self.enable_global_reduced_map:
+            try:
+                self.compute_global_downsampled_map()
+            except Exception as e:
+                print("Error generando global reduced map:", e)
+                self.global_map_reduced = None
+
+
+        """self.compute_prob_explored_map(out_size=self.prob_explored_bbox_size,
                                    neighborhood_scale=self.prob_neighborhood_scale,
                                    kernel=None,
                                    kernel_type=self.prob_kernel_type,
@@ -208,7 +239,7 @@ class MapProcessor:
                 self.generate_lem(pad=0)
         except Exception:
             # no queremos que un fallo en LEM rompa el cálculo de stats
-            self.lem_map = None
+            self.lem_map = None"""
 
 
     def _map_values_to_lem(self, submap: np.ndarray) -> np.ndarray:
@@ -468,6 +499,83 @@ class MapProcessor:
             self.prob_explored_map_reduced = out
 
         return self.prob_explored_map_reduced
+    
+
+    def compute_global_downsampled_map(self, out_size=(24, 24)):
+        """
+        Reduce el mapa global completo a out_size (H,W) usando max-pooling probabilístico.
+        Marca la posición del robot con -1.0 en el mapa reducido.
+        """
+        if self.map_data is None:
+            return None
+
+        H_in, W_in = self.map_data.shape
+        H_out, W_out = out_size
+
+        # --- 1. Convertir a probabilidad ---
+        prob = np.zeros_like(self.map_data, dtype=np.float32)
+        prob[self.map_data == FREE] = 0.0
+        prob[self.map_data >= 50] = 1.0
+        prob[self.map_data == UNKNOWN] = 0.5
+
+        # --- 2. Downsampling por bloques ---
+        out = np.zeros((H_out, W_out), dtype=np.float32)
+
+        scale_r = H_in / H_out
+        scale_c = W_in / W_out
+
+        for i in range(H_out):
+            r0 = int(np.floor(i * scale_r))
+            r1 = int(np.floor((i + 1) * scale_r))
+            if r1 <= r0:
+                r1 = r0 + 1
+            r1 = min(H_in, r1)
+
+            for j in range(W_out):
+                c0 = int(np.floor(j * scale_c))
+                c1 = int(np.floor((j + 1) * scale_c))
+                if c1 <= c0:
+                    c1 = c0 + 1
+                c1 = min(W_in, c1)
+
+                block = prob[r0:r1, c0:c1]
+
+                # Max-pooling probabilístico
+                if np.any(block == 1.0):
+                #if np.mean(block == 1.0) > 0.1:   # 10% del bloque ocupado
+                    out[i, j] = 1.0
+                elif np.all(block == 0.0):
+                    out[i, j] = 0.0
+                else:
+                    out[i, j] = float(block.mean())
+
+        # --- 3. Marcar posición del robot ---
+        robot_cell = self.get_robot_cell()
+        if robot_cell is not None:
+            r_g, c_g = robot_cell
+
+            # Convertir a índice reducido
+            i_red = int(np.clip(int(np.floor(r_g / scale_r)), 0, H_out - 1))
+            j_red = int(np.clip(int(np.floor(c_g / scale_c)), 0, W_out - 1))
+
+            # Tamaño del marcador (usa el mismo parámetro que el mapa probabilístico)
+            D = getattr(self, "prob_robot_marker_size", 3)
+            try:
+                D = max(1, int(D))
+            except Exception:
+                D = 3
+
+            dhalf = D // 2
+            r0 = max(0, i_red - dhalf)
+            r1 = min(H_out - 1, i_red + dhalf)
+            c0 = max(0, j_red - dhalf)
+            c1 = min(W_out - 1, j_red + dhalf)
+
+            out[r0:r1+1, c0:c1+1] = -1.0
+
+        self.global_map_reduced = out
+        return out
+
 
 
     # Método getter que devuelve copia del mapa reducido (24x24)
@@ -486,6 +594,13 @@ class MapProcessor:
         if (not as_uint8) and out.dtype == np.uint8:
             return (out.astype(np.float32) / 255.0).copy()
         return out.copy()
+    
+
+    def get_global_downsampled_map_copy(self):
+        if not hasattr(self, "global_map_reduced"):
+            return self.compute_global_downsampled_map()
+        return self.global_map_reduced.copy()
+
 
     
     def generate_lem(self, pad: int = 0) -> Optional[np.ndarray]:
@@ -715,32 +830,51 @@ class MapProcessor:
             return
         try:
             plt.ion()
-            self._fig, axs = plt.subplots(1, 3, figsize=figsize)
-            self._axs = axs
-            self._axs[0].set_title("Map (original)")
-            self._axs[1].set_title("ProbExplored (reducido)")
-            self._axs[2].set_title("LEM (egocentric)")
-            self._robot_scatter = None
-            self._prob_robot_scatter = None
 
-            # colormap para el mapa original (unknown=gray, free=white, occupied=black)
+            # Determinar cuántos paneles mostrar
+            panel_list = ["Original"]
+            if self.enable_prob_map:
+                panel_list.append("ProbExplored")
+            if self.enable_lem:
+                panel_list.append("LEM")
+            if self.enable_global_reduced_map:
+                panel_list.append("GlobalReduced")
+
+            self._panel_list = panel_list
+            n_panels = len(panel_list)
+
+            # Crear figura dinámica
+            self._fig, axs = plt.subplots(1, n_panels, figsize=(4*n_panels, 4))
+            if n_panels == 1:
+                axs = [axs]
+            self._axs = axs
+
+            # Títulos
+            for i, name in enumerate(panel_list):
+                self._axs[i].set_title(name)
+
+            # colormap original
             cmap = mcolors.ListedColormap(['gray', 'white', 'black'])
             bounds = [-1, 0.5, 50, 101]
             self._norm = mcolors.BoundaryNorm(bounds, cmap.N)
             self._cmap = cmap
 
-            # placeholders y estado para las imágenes
-            self._im_list = [None, None, None]
+            # placeholders
+            self._im_list = [None] * n_panels
             self._prob_colorbar = None
+            self._robot_scatter = None
+            self._prob_robot_scatter = None
 
             for ax in self._axs:
                 ax.set_xlabel('col')
                 ax.set_ylabel('row')
 
             self._plot_started = True
+
         except Exception:
             self._plot_started = False
             raise
+
 
 
     def update_plot(self, draw=True):
@@ -748,199 +882,121 @@ class MapProcessor:
             return
 
         with self._plot_lock:
-            # ---------------- Panel 0: mapa original ----------------
-            if self.map_data is None:
-                if self._im_list[0] is not None:
-                    self._im_list[0].set_data(np.zeros((1, 1)))
-                if draw:
-                    plt.pause(0.001)
-                return
 
-            disp = np.full(self.map_data.shape, 0, dtype=int)
-            disp[self.map_data == FREE] = 1
-            disp[self.map_data >= 50] = 2
+            panel_idx = 0
 
-            if self._im_list[0] is None:
-                self._im_list[0] = self._axs[0].imshow(disp, cmap=self._cmap, norm=self._norm,
-                                                    origin='lower', interpolation='nearest')
-                self._axs[0].set_xlim(-0.5, self.width - 0.5)
-                self._axs[0].set_ylim(-0.5, self.height - 0.5)
-            else:
-                self._im_list[0].set_data(disp)
-                self._im_list[0].set_extent((-0.5, self.width - 0.5, -0.5, self.height - 0.5))
+            # ---------------- Panel: Original ----------------
+            if self._panel_list[panel_idx] == "Original":
+                if self.map_data is None:
+                    if self._im_list[panel_idx] is not None:
+                        self._im_list[panel_idx].set_data(np.zeros((1, 1)))
+                    if draw:
+                        plt.pause(0.001)
+                    return
 
-            # ---------------- Panel 1: prob_explored_map reducido (heatmap) ----------------
-            try:
-                prob_map = self.get_prob_explored_map_copy(as_uint8=False)
-            except Exception:
-                prob_map = None
+                disp = np.full(self.map_data.shape, 0, dtype=int)
+                disp[self.map_data == FREE] = 1
+                disp[self.map_data >= 50] = 2
 
-            if prob_map is None:
-                prob_img = np.zeros(self.prob_explored_bbox_size, dtype=np.float32)
-            else:
-                prob_img = prob_map.copy()
-
-            Hp, Wp = prob_img.shape
-
-            if self._im_list[1] is None:
-                self._im_list[1] = self._axs[1].imshow(prob_img, cmap='viridis', origin='lower',
-                                                    vmin=0.0, vmax=1.0, interpolation='nearest')
-                self._axs[1].set_xlim(-0.5, Wp - 0.5)
-                self._axs[1].set_ylim(-0.5, Hp - 0.5)
-                self._prob_colorbar = self._fig.colorbar(self._im_list[1], ax=self._axs[1], fraction=0.046, pad=0.04)
-                self._prob_colorbar.set_label("P(unknown)")
-            else:
-                self._im_list[1].set_data(prob_img)
-                self._im_list[1].set_extent((-0.5, Wp - 0.5, -0.5, Hp - 0.5))
-                try:
-                    self._prob_colorbar.update_normal(self._im_list[1])
-                except Exception:
-                    pass
-
-            # ---------------- Panel 2: LEM ----------------
-            lem_img = self.lem_map if self.lem_map is not None else np.full(self.lem_size, 128, dtype=np.uint8)
-            if self._im_list[2] is None:
-                self._im_list[2] = self._axs[2].imshow(lem_img, cmap='gray', vmin=0, vmax=255, origin='lower', interpolation='nearest')
-                self._axs[2].set_xlim(-0.5, self.lem_size[1] - 0.5)
-                self._axs[2].set_ylim(-0.5, self.lem_size[0] - 0.5)
-            else:
-                self._im_list[2].set_data(lem_img)
-                self._im_list[2].set_extent((-0.5, self.lem_size[1] - 0.5, -0.5, self.lem_size[0] - 0.5))
-
-            # ---------------- Actualizar marcador del robot en panel 0 y panel 1 (MISMO BLOQUE) ----------------
-            # 1) obtener celda del robot en mapa global
-            robot_cell = None
-            if self.robot_pose is not None:
-                try:
-                    r_global, c_global = self.get_robot_cell()   # debe devolver (row, col) en mapa global
-                    robot_cell = (int(r_global), int(c_global))
-                except Exception:
-                    try:
-                        x, y, yaw = self.robot_pose
-                        c_global = int((x - self.map_origin_x) / self.resolution)
-                        r_global = int((y - self.map_origin_y) / self.resolution)
-                        robot_cell = (r_global, c_global)
-                    except Exception:
-                        robot_cell = None
-
-            # 2) actualizar scatter en panel 0 (mapa global)
-            if robot_cell is not None:
-                row, col = robot_cell
-                if getattr(self, "_robot_scatter", None) is None:
-                    self._robot_scatter = self._axs[0].scatter([col], [row], c='red', s=50, marker='o', zorder=5)
+                if self._im_list[panel_idx] is None:
+                    self._im_list[panel_idx] = self._axs[panel_idx].imshow(
+                        disp, cmap=self._cmap, norm=self._norm,
+                        origin='lower', interpolation='nearest'
+                    )
+                    self._axs[panel_idx].set_xlim(-0.5, self.width - 0.5)
+                    self._axs[panel_idx].set_ylim(-0.5, self.height - 0.5)
                 else:
-                    try:
-                        self._robot_scatter.set_offsets([[col, row]])
-                    except Exception:
-                        try:
-                            self._robot_scatter.remove()
-                        except Exception:
-                            pass
-                        self._robot_scatter = self._axs[0].scatter([col], [row], c='red', s=50, marker='o', zorder=5)
-            else:
-                if getattr(self, "_robot_scatter", None) is not None:
-                    try:
-                        self._robot_scatter.remove()
-                    except Exception:
-                        pass
-                    self._robot_scatter = None
+                    self._im_list[panel_idx].set_data(disp)
+                    self._im_list[panel_idx].set_extent(
+                        (-0.5, self.width - 0.5, -0.5, self.height - 0.5)
+                    )
 
-            # 3) mapear celda global -> celda reducida y actualizar scatter en panel 1
-            if robot_cell is not None:
-                r_g, c_g = robot_cell
-                H_in, W_in = self.map_data.shape
-                H_out, W_out = Hp, Wp
-                scale_r = H_in / float(H_out)
-                scale_c = W_in / float(W_out)
-                i_red = int(np.clip(np.floor(r_g / scale_r), 0, H_out - 1))
-                j_red = int(np.clip(np.floor(c_g / scale_c), 0, W_out - 1))
-                scatter_x = j_red
-                scatter_y = i_red
-            else:
-                scatter_x = Wp / 2.0
-                scatter_y = Hp / 2.0
+            panel_idx += 1
 
-            if getattr(self, "_prob_robot_scatter", None) is None:
-                self._prob_robot_scatter = self._axs[1].scatter([scatter_x], [scatter_y], c='red', s=40, marker='o', zorder=6)
+            # ---------------- Panel: ProbExplored ----------------
+            if "ProbExplored" in self._panel_list:
+                idx = self._panel_list.index("ProbExplored")
+
                 try:
-                    self._prob_robot_scatter._is_robot_marker = True
+                    prob_map = self.get_prob_explored_map_copy(as_uint8=False)
                 except Exception:
-                    pass
-            else:
+                    prob_map = None
+
+                if prob_map is None:
+                    prob_img = np.zeros(self.prob_explored_bbox_size, dtype=np.float32)
+                else:
+                    prob_img = prob_map.copy()
+
+                Hp, Wp = prob_img.shape
+
+                if self._im_list[idx] is None:
+                    self._im_list[idx] = self._axs[idx].imshow(
+                        prob_img, cmap='viridis', origin='lower',
+                        vmin=0.0, vmax=1.0, interpolation='nearest'
+                    )
+                    self._axs[idx].set_xlim(-0.5, Wp - 0.5)
+                    self._axs[idx].set_ylim(-0.5, Hp - 0.5)
+                    self._prob_colorbar = self._fig.colorbar(
+                        self._im_list[idx], ax=self._axs[idx],
+                        fraction=0.046, pad=0.04
+                    )
+                    self._prob_colorbar.set_label("P(unknown)")
+                else:
+                    self._im_list[idx].set_data(prob_img)
+                    self._im_list[idx].set_extent(
+                        (-0.5, Wp - 0.5, -0.5, Hp - 0.5)
+                    )
+
+            # ---------------- Panel: LEM ----------------
+            if "LEM" in self._panel_list:
+                idx = self._panel_list.index("LEM")
+
+                lem_img = self.lem_map if self.lem_map is not None else np.full(self.lem_size, 128, dtype=np.uint8)
+
+                if self._im_list[idx] is None:
+                    self._im_list[idx] = self._axs[idx].imshow(
+                        lem_img, cmap='gray', vmin=0, vmax=255,
+                        origin='lower', interpolation='nearest'
+                    )
+                    self._axs[idx].set_xlim(-0.5, self.lem_size[1] - 0.5)
+                    self._axs[idx].set_ylim(-0.5, self.lem_size[0] - 0.5)
+                else:
+                    self._im_list[idx].set_data(lem_img)
+                    self._im_list[idx].set_extent(
+                        (-0.5, self.lem_size[1] - 0.5, -0.5, self.lem_size[0] - 0.5)
+                    )
+
+            # ---------------- Panel: GlobalReduced ----------------
+            if "GlobalReduced" in self._panel_list:
+                idx = self._panel_list.index("GlobalReduced")
+
                 try:
-                    self._prob_robot_scatter.set_offsets([[scatter_x, scatter_y]])
-                except Exception:
-                    try:
-                        self._prob_robot_scatter.remove()
-                    except Exception:
-                        pass
-                    self._prob_robot_scatter = self._axs[1].scatter([scatter_x], [scatter_y], c='red', s=40, marker='o', zorder=6)
-                    try:
-                        self._prob_robot_scatter._is_robot_marker = True
-                    except Exception:
-                        pass
-            
+                    gm = self.get_global_downsampled_map_copy()
+                except:
+                    gm = None
 
-            """            # ---------------- Panel 1: prob_explored_map reducido (heatmap) ----------------
-            try:
-                prob_map = self.get_prob_explored_map_copy(as_uint8=False)
-            except Exception:
-                prob_map = None
+                if gm is None:
+                    gm = np.zeros((24, 24), dtype=np.float32)
 
-            if prob_map is None:
-                prob_img = np.zeros(self.prob_explored_bbox_size, dtype=np.float32)
-            else:
-                prob_img = prob_map.copy()
+                Hgr, Wgr = gm.shape
 
-            # Si por alguna razón prob_img viene en uint8 con convención 0==robot, convertir:
-            if prob_img.dtype == np.uint8:
-                # convención: 0 -> robot marker, 1..255 -> prob 0..1 (ver compute_prob_explored_map)
-                arr = prob_img.astype(np.float32)
-                mask_robot = (arr == 0)
-                # mapear 1..255 -> 0..1
-                arr[~mask_robot] = (arr[~mask_robot] - 1.0) / 254.0
-                arr[mask_robot] = -1.0
-                prob_img = arr
-
-            # asegurar float32
-            if prob_img.dtype != np.float32 and prob_img.dtype != np.float64:
-                prob_img = prob_img.astype(np.float32)
-
-            Hp, Wp = prob_img.shape
-
-            # crear colormap y normalización que reserve un color para -1.0
-            cmap = plt.cm.viridis.copy()
-            cmap.set_under('red')                     # valores por debajo de vmin se pintan en rojo
-            norm = mcolors.Normalize(vmin=-1.0, vmax=1.0)
-
-            if self._im_list[1] is None:
-                self._im_list[1] = self._axs[1].imshow(
-                    prob_img, cmap=cmap, origin='lower',
-                    norm=norm, interpolation='nearest', vmin=-1.0, vmax=1.0
-                )
-                self._axs[1].set_xlim(-0.5, Wp - 0.5)
-                self._axs[1].set_ylim(-0.5, Hp - 0.5)
-                self._prob_colorbar = self._fig.colorbar(self._im_list[1], ax=self._axs[1], fraction=0.046, pad=0.04)
-                self._prob_colorbar.set_label("P(unknown)  (-1 = robot)")
-                # ajustar ticks para que no confundan el marcador -1 con la escala 0..1
-                self._prob_colorbar.set_ticks([-1.0, 0.0, 0.5, 1.0])
-                self._prob_colorbar.set_ticklabels(['robot', '0.0', '0.5', '1.0'])
-            else:
-                # actualizar datos (prob_img puede contener -1.0)
-                self._im_list[1].set_data(prob_img)
-                self._im_list[1].set_norm(norm)
-                self._im_list[1].set_cmap(cmap)
-                self._im_list[1].set_extent((-0.5, Wp - 0.5, -0.5, Hp - 0.5))
-                try:
-                    self._prob_colorbar.update_normal(self._im_list[1])
-                except Exception:
-                    pass
-            """
-
+                if self._im_list[idx] is None:
+                    self._im_list[idx] = self._axs[idx].imshow(
+                        gm, cmap='viridis', origin='lower',
+                        vmin=-1.0, vmax=1.0, interpolation='nearest'
+                    )
+                    self._axs[idx].set_xlim(-0.5, Wgr - 0.5)
+                    self._axs[idx].set_ylim(-0.5, Hgr - 0.5)
+                else:
+                    self._im_list[idx].set_data(gm)
+                    self._im_list[idx].set_extent(
+                        (-0.5, Wgr - 0.5, -0.5, Hgr - 0.5)
+                    )
 
             # ---------------- Finalizar frame ----------------
             if draw:
                 plt.pause(0.001)
+
 
 
 

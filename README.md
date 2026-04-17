@@ -129,7 +129,7 @@ source /ros2_ws/install/setup.bash
 source /home/$USER/create3_ws/install/setup.bash
 source turtlebot3_drlnav_ws/setup_drlnav.sh
 source turtlebot3_drlnav_ws/install/setup.bash
-source /home/$USER$/map_proc_ws/install/setup.bash
+source /home/$USER/map_proc_ws/install/setup.bash
 ```
 
 
