@@ -9,5 +9,8 @@ create3_sim_JavAram/create3_ws/log/*
 turtlebot3_drlnav_JavAram/build/*
 turtlebot3_drlnav_JavAram/install/*
 turtlebot3_drlnav_JavAram/log/*
+map_proc_ws/build/*
+map_proc_ws/install/*
+map_proc_ws/log/*
 
 

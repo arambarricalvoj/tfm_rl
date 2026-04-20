@@ -39,10 +39,6 @@ class Actor(Network):
         self._prob_n = PROB_N
         self._lem_n = LEM_N
 
-        # ❌ Antes: scan + scalars + prob + lem
-        # self.scalar_size = state_size - NUM_SCAN_SAMPLES - PROB_N - LEM_N
-
-        # ✅ Ahora: scan + scalars + gm
         self.scalar_size = state_size - NUM_SCAN_SAMPLES - PROB_N
 
         if self.scalar_size < 0:
@@ -84,7 +80,7 @@ class Actor(Network):
 
         # --- GLOBAL REDUCED MAP CNN (NUEVO, IGUAL QUE PROB) ---
         self.cnn_gm = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, stride=2, padding=1),
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Conv2d(16, 1, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -94,10 +90,6 @@ class Actor(Network):
             nn.ReLU()
         )
 
-        # ❌ Antes: laser + prob + lem + scalars
-        # fc_in = out_dimension + out_dimension + out_dimension + self.scalar_size
-
-        # ✅ Ahora: laser + gm + scalars
         fc_in = out_dimension + out_dimension + self.scalar_size
 
         self.fa1 = nn.Linear(fc_in, hidden_size)
@@ -197,15 +189,15 @@ class Critic(Network):
 
         def get_map_extractor():
             return nn.Sequential(
-                nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
-                nn.ReLU(),
-                nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
-                nn.ReLU(),
-                nn.AdaptiveMaxPool2d((4, 5)),
-                nn.Flatten(),
-                nn.Linear(16 * 4 * 5, out_dimension),
-                nn.ReLU()
-            )
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 1, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool2d((4, 5)),
+            nn.Flatten(),
+            nn.Linear(4 * 5, out_dimension),
+            nn.ReLU()
+        )
 
         # self.cnn_q1_prob = get_map_extractor()
         # self.cnn_q1_lem = get_map_extractor()

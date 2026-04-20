@@ -119,6 +119,7 @@ class DRLGazebo(Node):
 
     def task_succeed_callback(self, request, response):
         self.delete_entity()
+        self.reset_simulation()
         if ENABLE_TRUE_RANDOM_GOALS:
             self.generate_random_goal()
             print(f"success: generate (random) a new goal, goal pose: {self.goal_x:.2f}, {self.goal_y:.2f}")
@@ -232,110 +233,6 @@ class DRLGazebo(Node):
         #self.goal_y = float(0.0)
         self.publish_callback()
 
-    def nodoa_kudeatu(self, nodoa, transition_id, next_step=None):
-        self.get_logger().info(f'/{nodoa}/change_state → {transition_id}')
-
-        client = self.create_client(ChangeState, f'/{nodoa}/change_state')
-
-        if not client.wait_for_service(timeout_sec=0.5):
-            self.get_logger().warn(f'{nodoa}/change_state no disponible, reintentando...')
-            self.create_timer(0.5, lambda: self.nodoa_kudeatu(nodoa, transition_id, next_step))
-            return
-
-        request = ChangeState.Request()
-        request.transition.id = transition_id
-
-        future = client.call_async(request)
-
-        def done_cb(fut):
-            if fut.result() is not None:
-                self.get_logger().info(f'Transición OK: {nodoa} → {transition_id}')
-            else:
-                self.get_logger().error(f'Error en transición: {nodoa} → {transition_id}')
-
-            if next_step is not None:
-                next_step()
-
-        future.add_done_callback(done_cb)
-
-
-    # -------------------------
-    # NUEVO: Pausar Gazebo
-    # -------------------------
-    def pause_gazebo(self, next_step=None):
-        self.pause_physics = self.create_client(Empty, '/pause_physics')
-        self.pause_physics.call_async(Empty.Request())
-
-        if not self.pause_physics.wait_for_service(timeout_sec=0.5):
-            self.get_logger().warn('pause_physics no disponible, reintentando...')
-            self.create_timer(0.5, lambda: self.pause_gazebo(next_step))
-            return
-
-        future = self.pause_physics.call_async(Empty.Request())
-
-        def done_cb(fut):
-            self.get_logger().info("Gazebo PAUSADO.")
-            if next_step:
-                next_step()
-
-        future.add_done_callback(done_cb)
-
-
-    def unpause_gazebo(self):
-        self.unpause_physics = self.create_client(Empty, '/unpause_physics')
-        self.unpause_physics.call_async(Empty.Request())
-
-        if not self.unpause_physics.wait_for_service(timeout_sec=0.5):
-            self.get_logger().warn('unpause_physics no disponible, reintentando...')
-            self.create_timer(0.5, self.unpause_gazebo)
-            return
-
-        self.unpause_physics.call_async(Empty.Request())
-        self.get_logger().info("Gazebo REANUDADO.")
-
-
-    # -------------------------
-    # RESET SIMULATION
-    # -------------------------
-    """def reset_simulation(self):
-        # Parar robot
-        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
-
-        # 1) Pausar Gazebo
-        self.pause_gazebo(
-            next_step=lambda: self.nodoa_kudeatu(
-                'slam_toolbox',
-                Transition.TRANSITION_DEACTIVATE,
-                next_step=lambda: self.nodoa_kudeatu(
-                    'slam_toolbox',
-                    Transition.TRANSITION_CLEANUP,
-                    next_step=self._reset_simulation_async
-                )
-            )
-        )
-
-    def _reset_simulation_async(self):
-        req = Empty.Request()
-        future = self.reset_simulation_client.call_async(req)
-
-        def done_cb(fut):
-            self.get_logger().info("RESET SIMULATION completado.")
-            #time.sleep(0.5)
-            self._configure_and_activate()
-
-        future.add_done_callback(done_cb)
-
-    def _configure_and_activate(self):
-        self.nodoa_kudeatu(
-            'slam_toolbox',
-            Transition.TRANSITION_CONFIGURE,
-            next_step=lambda: self._episode_ready
-        )
-
-    def _episode_ready(self):
-        self.unpause_gazebo()
-        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")"""
-
     def reset_simulation(self):
         # 1. Parar el robot
         self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
@@ -355,42 +252,6 @@ class DRLGazebo(Node):
         gazebo_future = self.reset_simulation_client.call_async(gazebo_req)
 
         self.get_logger().info("RESET SIMULATION completado.")
-
-
-        # 1) DEACTIVATE
-        """self.nodoa_kudeatu(
-            'slam_toolbox',
-            Transition.TRANSITION_DEACTIVATE,
-            next_step=lambda: self.nodoa_kudeatu(
-                'slam_toolbox',
-                Transition.TRANSITION_CLEANUP,
-                next_step=self._reset_simulation_async
-            )
-        
-
-
-    def _reset_simulation_async(self):
-        req = Empty.Request()
-        future = self.reset_simulation_client.call_async(req)
-
-        def done_cb(fut):
-            self.get_logger().info("RESET SIMULATION completado.")
-            self._configure_and_activate()
-
-        future.add_done_callback(done_cb)
-
-
-    def _configure_and_activate(self):
-        # 4) CONFIGURE
-        self.nodoa_kudeatu(
-            'slam_toolbox',
-            Transition.TRANSITION_CONFIGURE,
-            next_step=self._episode_ready
-        )
-
-
-    def _episode_ready(self):
-        self.get_logger().info("Episodio listo: SLAM sincronizado y Gazebo reseteado.")"""
     
     def move_robot(self, linear_x=0.0, angular_z=0.0, duration=0.1):
         msg = Twist()

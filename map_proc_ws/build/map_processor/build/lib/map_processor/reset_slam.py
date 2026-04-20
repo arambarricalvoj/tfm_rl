@@ -4,9 +4,6 @@ from std_srvs.srv import Trigger
 import subprocess
 import signal
 import os
-import time
-import threading
-import sys
 
 class SlamManager(Node):
     def __init__(self):
@@ -22,9 +19,6 @@ class SlamManager(Node):
         self.start_slam()
 
         self.srv = self.create_service(Trigger, 'reset_slam', self.reset_slam_callback)
-
-        # Registrar handler para Ctrl-C
-        signal.signal(signal.SIGINT, self.shutdown_handler)
 
     def start_slam(self):
         self.get_logger().info("Iniciando SLAM Toolbox...")
@@ -48,20 +42,21 @@ class SlamManager(Node):
         response.message = "SLAM Toolbox reiniciado correctamente"
         return response
 
-    def shutdown_handler(self, sig, frame):
-        self.get_logger().warn("Ctrl-C detectado. Matando SLAM Toolbox...")
-        self.stop_slam()
-        rclpy.shutdown()
-        sys.exit(0)
-
-
 def main(args=None):
     rclpy.init(args=args)
     node = SlamManager()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
 
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        node.get_logger().warn("Ctrl-C detectado desde main()")
+    finally:
+        node.stop_slam()
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

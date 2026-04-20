@@ -115,10 +115,13 @@ class DRLEnvironment(Node):
         self.processor.enable_prob_map = False
         self.processor.enable_lem = False
         self.processor.enable_global_reduced_map = True
+        
+        # GUI del mapa del paquete map_processor
         """try:
             self.processor.start_plot()
         except Exception as e:
             self.get_logger().warn(f'No se pudo iniciar plot: {e}')"""
+        
         self.exploration = {'current': 0.0, 'previous': 0.0}
 
         self.map_known_percent_prev = 0.0
@@ -150,81 +153,11 @@ class DRLEnvironment(Node):
     """*******************************************************************************
     ** Callback functions and relevant functions
     *******************************************************************************"""
-    """def map_callback(self, msg):
-        h = int(msg.info.height)
-        w = int(msg.info.width)
-        resolution = float(msg.info.resolution)
-        origin_x = float(msg.info.origin.position.x)
-        origin_y = float(msg.info.origin.position.y)
-
-        # actualizar metadatos
-        self.map_resolution = resolution
-        self.map_origin_x = origin_x
-        self.map_origin_y = origin_y
-
-        # leer y reshapar
-        try:
-            data = np.array(msg.data, dtype=np.int8).reshape((h, w))
-        except Exception:
-            data = np.array(msg.data, dtype=np.int8)
-            if data.size == h * w:
-                data = data.reshape((h, w))
-            else:
-                self.get_logger().error("[MAP] OccupancyGrid shape mismatch")
-                return
-
-        # normalizar a -1,0,1
-        norm_grid = np.empty_like(data, dtype=np.int8)
-        norm_grid.fill(-1)
-        norm_grid[data == 0] = 0
-        norm_grid[data > 0] = 1
-
-        # actualizar prev/current
-        if self.map_grid is None:
-            self.prev_map_grid = norm_grid.copy()
-            self.map_grid = norm_grid.copy()
-        else:
-            self.prev_map_grid = self.map_grid.copy()
-            self.map_grid = norm_grid.copy()
-
-        # contar celdas conocidas (cantidad absoluta)
-        known_cells_count = int((self.map_grid != -1).sum())
-        self.known_cells_count_prev = self.known_cells_count
-        self.known_cells_count = known_cells_count
-        
-        # calcular coverage como fracción de celdas conocidas sobre el mapa actual 
-        self.cov_previous = self.coverage
-        total_cells = h*w
-        if total_cells > 0: 
-            self.coverage = float(known_cells_count) / float(total_cells) 
-        else: 
-            self.coverage = 0.0
-
-        # construir local grid 6x6 centrada en la pose actual
-        #rx = float(self.pose.get('x', 0.0))
-        #ry = float(self.pose.get('y', 0.0))
-        #ryaw = float(self.pose.get('yaw', 0.0))
-        #self.local_grid_6x6 = self.compute_local_grid_6x6(rx, ry, ryaw)
-
-        # logging mínimo (evitar spam)
-        self.get_logger().info(f"[MAP] recibido {w}x{h}, known_cells={known_cells_count}, coverage={self.coverage}")"""
-
     def map_callback(self, msg: OccupancyGrid):
         # actualizar el objeto MapProcessor con el OccupancyGrid recibido
         try:
             self.current_map_msg = msg
             self.processor.update_from_occupancy_grid(msg)
-            # suponer que self.processor es una instancia de MapProcessor
-            """print("Explored bbox (min_row,min_col,max_row,max_col):", self.processor.get_explored_bbox())
-            print("Explored bbox size (rows,height_cols):", self.processor.get_explored_bbox_size())
-            submap = self.processor.get_explored_map_copy(pad=0)
-            if submap is None:
-                print("No hay región explorada o mapa no inicializado.")
-            else:
-                print("Submap shape (rows,cols):", submap.shape)
-                print("Explored bbox (rows,cols):", self.processor.get_explored_bbox(), self.processor.get_explored_bbox_size())
-            """
-            #self.processor.update_plot()
         except Exception as e:
             self.get_logger().error(f'Error actualizando mapa: {e}')
             return
@@ -233,19 +166,13 @@ class DRLEnvironment(Node):
         free = self.processor.free_percent
         occ = self.processor.occupied_percent
         known_pct = 100 - self.processor.unknown_percent
-        coverage = self.processor.free_ratio_known  # o el nombre que uses
+        coverage = self.processor.free_ratio_known 
         bbox = self.processor.explored_bbox
         w = self.processor.width if self.processor.width is not None else 'N/A'
         h = self.processor.height if self.processor.height is not None else 'N/A'
 
         self.exploration['previous'] = self.exploration['current']
         self.exploration['current'] = known_pct / 100.0
-
-        """self.get_logger().info(
-            f'Map updated: free={free} occ={occ} known%={known_pct:.1f} '
-            f'bbox={bbox} '
-            f'H={h} W={w}'
-        )"""
 
         self.get_logger().info(
             f'Map updated: known%={known_pct:.1f} '
@@ -415,16 +342,6 @@ class DRLEnvironment(Node):
         state.append(float(action_linear_previous))
         state.append(float(action_angular_previous))
 
-        # --- ProbExplored reducido (float, contiene -1.0 para robot) ---
-        """prob = self.processor.get_prob_explored_map_copy(as_uint8=False)
-        if prob is None:
-            # fallback: usar tamaño del mapa reducido esperado (prob_explored_bbox_size)
-            H, W = getattr(self.processor, "prob_explored_bbox_size", (24, 24))
-            prob = np.zeros((H, W), dtype=np.float32)
-        prob_flat = np.asarray(prob, dtype=np.float32).ravel()
-        # añadir los valores individuales (Python floats)
-        state.extend(prob_flat.astype(float).tolist())"""
-
         # Global Reduced Map
         gm = self.processor.get_global_downsampled_map_copy()
         if gm is None:
@@ -435,21 +352,11 @@ class DRLEnvironment(Node):
         # añadir los valores individuales (Python floats)
         state.extend(gm_flat.astype(float).tolist())
 
-        # --- LEM ---
-        #lem = self.processor.get_lem_copy(generate_if_missing=True)
-        #if lem is None:
-        #    H, W = getattr(self.processor, "lem_size", (24, 24))
-        #    lem = np.full((H, W), 128, dtype=np.uint8)
-        #lem_mapped = (lem.astype(np.float32) / 255.0).ravel()
-        #state.extend(lem_mapped.astype(float).tolist())
-
         yaw_val = float(self.pose.get('yaw', 0.0)) if isinstance(self.pose, dict) else 0.0
         state.append(yaw_val)
 
         state.append(float(self.exploration['current']))
         state.append(float(self.obstacle_distance))
-
-        
 
 
         self.local_step += 1
@@ -524,12 +431,7 @@ class DRLEnvironment(Node):
         #cov_incr = max(0, self.coverage - self.cov_previous)
         #cov_incr = max(0.0, (self.map_known_percent_curr - self.map_known_percent_prev) / 100.0)
 
-        """dist = math.hypot(self.diff_pose['x'], self.diff_pose['y'])
-        MIN_MOVE_DIST = 0.34  # diámetro del robot
-        if dist < MIN_MOVE_DIST:
-            self.steps_no_move += 1
-        else:
-            self.steps_no_move = 0"""
+        self.steps['count'] = self.local_step
         
         response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, self.obstacle_distance, self.exploration, self.steps))
         response.done = self.done

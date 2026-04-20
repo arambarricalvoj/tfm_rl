@@ -14,7 +14,7 @@ docker run -e DISPLAY=$DISPLAY \
            --gpus all \
            --runtime=nvidia \
            --name tfm_rl \
-           arambarricalvoj/tfm_rl:slam_toolbox_lifecycle
+           arambarricalvoj/tfm_rl:slam_apt
            #tfm_rl:slam_toolbox_lifecycle
            # tfm_rl:latest
            # -v ./slam_toolbox:/home/$USER/slam_toolbox/ \

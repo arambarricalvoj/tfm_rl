@@ -58,7 +58,7 @@ class MapProcessor:
         self.prob_kernel_type = "uniform"    # "uniform" o "gaussian"
         self.prob_kernel = None              # si no es None, usar kernel 2D personalizado (se normaliza)
         self.prob_return_uint8 = False       # si True devuelve 0..255 uint8, si False devuelve float 0..1
-        self.prob_robot_marker_size = 3
+        self.prob_robot_marker_size = 4
 
         # ---------- Local Egocentric Map ----------
         # tamaño deseado de la LEM en celdas (H, W). Por defecto 24x24.
@@ -458,7 +458,7 @@ class MapProcessor:
             j_red = int(np.clip(int(np.floor(c_g / scale_c)), 0, W_out - 1))
 
             # tamaño de vecindad D (usa atributo si existe, si no 3)
-            D = getattr(self, "prob_robot_marker_size", 3)
+            D = getattr(self, "prob_robot_marker_size", 4)
             try:
                 D = max(1, int(D))
             except Exception:
@@ -559,11 +559,11 @@ class MapProcessor:
             j_red = int(np.clip(int(np.floor(c_g / scale_c)), 0, W_out - 1))
 
             # Tamaño del marcador (usa el mismo parámetro que el mapa probabilístico)
-            D = getattr(self, "prob_robot_marker_size", 3)
+            D = getattr(self, "prob_robot_marker_size", 4)
             try:
                 D = max(1, int(D))
             except Exception:
-                D = 3
+                D = 5
 
             dhalf = D // 2
             r0 = max(0, i_red - dhalf)
