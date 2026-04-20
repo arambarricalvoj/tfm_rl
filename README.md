@@ -63,6 +63,13 @@ Terminal 1:
 ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false
 ```
 
+o si queremos el robot en la esquina superior derecha:
+
+```bash
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py     world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false x:=2.25 y:=2.25 z:=0.01 yaw:=-1.57
+
+```
+
 Esto arranca la simulación sin ventana gráfica (solo RViz) y el mundo sin obstáculos dinámicos. Si se quiere arrancar con obstáculos dinámicos cambiar 
 
 ``world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model`` 
@@ -88,3 +95,5 @@ Terminal 5:
 ```bash
 ros2 run map_processor reset_slam
 ```
+
+**IMPORTANTE**: arrancar primero gazebo + rviz y SLAM, y cuando salga el mapa en RVIZ se puede arrancar el resto.
