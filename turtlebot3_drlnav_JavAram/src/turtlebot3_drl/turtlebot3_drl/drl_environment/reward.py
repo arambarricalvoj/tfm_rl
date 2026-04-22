@@ -53,11 +53,11 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
 
     delta = exploration["current"] - exploration["previous"]
     if delta > 0.0:
-        r_exploration = 100.0 * delta
+        r_exploration = 300.0 * delta
     else:
         r_exploration = 0.0
 
-    r_time = -10.0 
+    r_time = -2.0 
 
     reward = (r_vangular + r_vlinear + r_obstacle + r_exploration + r_time) / 1000.0
     if succeed == SUCCESS:
