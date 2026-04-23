@@ -18,7 +18,7 @@ class SlamListener(Node):
         # ---- Activar LEM y GEM ----
         self.processor.enable_lem = True
         self.processor.enable_global_reduced_map = True
-        self.processor.lem_scale = 6
+        self.processor.lem_scale = 3
 
         # ---- Iniciar visualización ----
         try:

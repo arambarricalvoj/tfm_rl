@@ -111,16 +111,15 @@ class DRLEnvironment(Node):
 
         self.map_sub = self.create_subscription( OccupancyGrid, '/map', self.map_callback, 10 ) 
         self.processor = MapProcessor()
-        # ---- Elegir qué mapas activar ----
-        self.processor.enable_prob_map = False
-        self.processor.enable_lem = False
+        self.processor.enable_lem = True
         self.processor.enable_global_reduced_map = True
+        self.processor.lem_scale = 3.5
         
         # GUI del mapa del paquete map_processor
-        """try:
+        try:
             self.processor.start_plot()
         except Exception as e:
-            self.get_logger().warn(f'No se pudo iniciar plot: {e}')"""
+            self.get_logger().warn(f'No se pudo iniciar plot: {e}')
         
         self.exploration = {'current': 0.0, 'previous': 0.0}
 
@@ -161,24 +160,30 @@ class DRLEnvironment(Node):
         except Exception as e:
             self.get_logger().error(f'Error actualizando mapa: {e}')
             return
-
-        # acceder a métricas ya calculadas y loguearlas o publicarlas
-        free = self.processor.free_percent
-        occ = self.processor.occupied_percent
-        known_pct = 100 - self.processor.unknown_percent
-        coverage = self.processor.free_ratio_known 
-        bbox = self.processor.explored_bbox
-        w = self.processor.width if self.processor.width is not None else 'N/A'
-        h = self.processor.height if self.processor.height is not None else 'N/A'
-
+        
         self.exploration['previous'] = self.exploration['current']
-        self.exploration['current'] = known_pct / 100.0
+        self.exploration['current'] = (100 - self.processor.unknown_percent) / 100.0
 
         self.get_logger().info(
+            f'Map updated: known%={100 - self.processor.unknown_percent:.1f} '
+        )
+
+        # acceder a métricas ya calculadas y loguearlas o publicarlas
+        #free = self.processor.free_percent
+        #occ = self.processor.occupied_percent
+        #known_pct = 100 - self.processor.unknown_percent
+        #coverage = self.processor.free_ratio_known 
+        #bbox = self.processor.explored_bbox
+        #w = self.processor.width if self.processor.width is not None else 'N/A'
+        #h = self.processor.height if self.processor.height is not None else 'N/A'
+
+        
+
+        """self.get_logger().info(
             f'Map updated: known%={known_pct:.1f} '
             f'bbox={bbox} '
             f'H={h} W={w}'
-        )
+        )"""
     
     def quaternion_to_yaw(self, x, y, z, w):
         siny_cosp = 2.0 * (w * z + x * y)
@@ -199,7 +204,7 @@ class DRLEnvironment(Node):
             x = float(msg.pose.pose.position.x)
             y = float(msg.pose.pose.position.y)
             self.processor.set_robot_pose_from_pose_msg(msg)
-            #self.processor.update_plot()
+            self.processor.update_plot()
         except Exception:
             return  # mensaje mal formado
 
@@ -338,25 +343,48 @@ class DRLEnvironment(Node):
         # base: copia de scan_ranges (lista de floats)
         state = list(copy.deepcopy(self.scan_ranges))  # range: [0,1], longitud NUM_SCAN_SAMPLES
 
+        # maps
+        lem = self.processor.lem_map
+        gem = self.processor.gem_map
+        if lem is None or gem is None:
+            maps_vec = np.zeros(24*24*2, dtype=np.float32)
+        else:
+            # flatten y concatenar
+            lem_f = lem.flatten().astype(np.float32)
+            gem_f = gem.flatten().astype(np.float32)
+            # normalizar (muy recomendable)
+            lem_f /= 255.0
+            gem_f /= 255.0
+            maps_vec = np.concatenate([lem_f, gem_f], axis=0)
+        state.extend(maps_vec)
+
         # acciones previas y yaw (escalas ya en [-1,1] y yaw en rad)
         state.append(float(action_linear_previous))
         state.append(float(action_angular_previous))
 
-        # Global Reduced Map
-        gm = self.processor.get_global_downsampled_map_copy()
-        if gm is None:
-            # fallback: usar tamaño del mapa reducido esperado (prob_explored_bbox_size)
-            H, W = getattr(self.processor, "prob_explored_bbox_size", (24, 24))
-            gm = np.zeros((H, W), dtype=np.float32)
-        gm_flat = np.asarray(gm, dtype=np.float32).ravel()
-        # añadir los valores individuales (Python floats)
-        state.extend(gm_flat.astype(float).tolist())
+        state.append(np.sin(float(self.pose['yaw'])))
+        state.append(np.cos(float(self.pose['yaw'])))
 
-        yaw_val = float(self.pose.get('yaw', 0.0)) if isinstance(self.pose, dict) else 0.0
-        state.append(yaw_val)
+        state = [float(x) for x in state]
 
-        state.append(float(self.exploration['current']))
-        state.append(float(self.obstacle_distance))
+        logger = self.get_logger()
+        for idx, v in enumerate(state):
+            # Tipo incorrecto
+            if not isinstance(v, float):
+                logger.info(f"[STATE ERROR] idx={idx} tipo={type(v)} valor={v}")
+
+            # NaN
+            if isinstance(v, float) and (v != v):  # forma sin math.isnan
+                logger.info(f"[STATE ERROR] idx={idx} valor=NaN")
+
+            # Inf
+            if isinstance(v, float) and (v == float('inf') or v == float('-inf')):
+                logger.info(f"[STATE ERROR] idx={idx} valor=INF")
+
+
+
+        #state.append(float(self.exploration['current']))
+        #state.append(float(self.obstacle_distance/LIDAR_DISTANCE_CAP))
 
 
         self.local_step += 1
@@ -387,7 +415,6 @@ class DRLEnvironment(Node):
     # Intialize the episode
     def initalize_episode(self, response):
         #self.initial_distance_to_goal = self.goal_distance
-        response.state = self.get_state(0, 0)
         response.reward = 0.0
         response.done = False
         response.distance_traveled = 0.0
@@ -396,6 +423,9 @@ class DRLEnvironment(Node):
         self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
         self.exploration = {'current': 0.0, 'previous': 0.0}
+        self.processor.lem_map = None
+        self.processor.gem_map = None
+        response.state = self.get_state(0, 0)
         rw.reward_initialize(None)
         return response
     

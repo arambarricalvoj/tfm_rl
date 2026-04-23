@@ -45,19 +45,29 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
     # [-18, 0] fuerte
     r_vlinear = -1.0 * (((0.3 - action_linear) * 10.0) ** 2)
 
+    #r_vlinear = -0.2 * ((0.3 - action_linear) ** 2)
+    #r_vangular = -0.1 * (action_angular ** 2)
+
+
     # [-20, 0] muy fuerte
     if min_obstacle_dist < 0.22:
         r_obstacle = -20.0
     else:
         r_obstacle = 0.0
 
-    delta = exploration["current"] - exploration["previous"]
-    if delta > 0.0:
-        r_exploration = 300.0 * delta
-    else:
-        r_exploration = 0.0
+    # --- 3) Exploración (adaptado del paper) ---
+    rho_prev = float(exploration["previous"])
+    rho_curr = float(exploration["current"])
+    delta_sq = rho_curr**2 - rho_prev**2
 
-    r_time = -2.0 
+    if delta_sq > 0.0:
+        # Paper: clip(10 * (rho_t^2 - rho_{t-1}^2), 0, 1)
+        r_exploration = min(10.0 * delta_sq, 1.0) * 100.0
+    else:
+        # Paper: -0.005 → lo llevamos a tu escala *1000
+        r_exploration = -0.5
+
+    r_time = -1.0 
 
     reward = (r_vangular + r_vlinear + r_obstacle + r_exploration + r_time) / 1000.0
     if succeed == SUCCESS:
