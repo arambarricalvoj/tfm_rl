@@ -58,15 +58,22 @@ touch /tmp/drlnav_current_stage.txt
 echo 9 > /tmp/drlnav_current_stage.txt
 ```
 
+## **Todos los comandos de ejecución tienen que ejecutarse desde ``/home/$USER/``, en mi caso ``/home/javierac/``. Si estamos en esa carpeta, al hacer ``ls`` tendrán que salir los 3 workspaces: ``create3_ws/``, ``map_proc_ws``, ``turtlebot3_drlnav_ws``**
+
+Antes de ejecutar, todas las terminales tienen que estar en ``/home/$USER/``:
+```bash
+cd /home/$USER/
+```
+
 Terminal 1:
 ```bash
-ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py world_path:=/home/$USER/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false
 ```
 
 o si queremos el robot en la esquina superior derecha:
 
 ```bash
-ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py     world_path:=/home/javierac/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false x:=2.25 y:=2.25 z:=0.01 yaw:=-1.57
+ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py     world_path:=/home/$USER/create3_ws/src/irobot_create_gazebo/irobot_create_gazebo_bringup/launch/worlds/stage9.model use_gazebo_gui:=false x:=2.25 y:=2.25 z:=0.01 yaw:=-1.57
 
 ```
 

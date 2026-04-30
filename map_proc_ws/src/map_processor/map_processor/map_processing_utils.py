@@ -42,6 +42,19 @@ class MapProcessor:
         self.mean_occupancy = 0.0
         self.size_m2 = None
 
+        # métricas GEM
+        self.total_count_gem = 0
+        self.known_count_gem = 0
+        self.unknown_count_gem = 0
+
+        self.known_percent_gem = 0.0
+        self.unknown_percent_gem = 0.0
+        self.coverage_gem = 0.0
+        self.mean_occupancy_gem = 0.0
+
+        self.explored_bbox_gem = None
+        self.explored_bbox_size_gem = None
+
         # bounding box explorado
         self.explored_bbox = None
         self.explored_bbox_size = None
@@ -49,7 +62,7 @@ class MapProcessor:
         # mapas derivados
         self.lem_size = (24, 24)
         self.gem_size = (24, 24)
-        self.lem_scale = 1  # configurable externamente
+        self.lem_scale = 4  # configurable externamente
         self.lem_map = None
         self.gem_map = None
         self.cnn_map = None
@@ -144,6 +157,31 @@ class MapProcessor:
             max_r, max_c = int(rows.max()), int(cols.max())
             self.explored_bbox = (min_r, min_c, max_r, max_c)
             self.explored_bbox_size = (max_r - min_r + 1, max_c - min_c + 1)
+    
+    def _compute_gem_stats(self):
+        if self.gem_map is None:
+            return
+
+        # total de celdas
+        self.total_count_gem = self.gem_map.size
+
+        # desconocido = 0
+        self.unknown_count_gem = int((self.gem_map == 0).sum())
+
+        # conocido = 255 (explorado) + 128 (robot)
+        known_mask = (self.gem_map == 255) | (self.gem_map == self.gem_agent_marker_value)
+        self.known_count_gem = int(known_mask.sum())
+
+        # porcentajes
+        if self.total_count_gem > 0:
+            self.known_percent_gem = 100.0 * self.known_count_gem / self.total_count_gem
+            self.unknown_percent_gem = 100.0 * self.unknown_count_gem / self.total_count_gem
+        else:
+            self.known_percent_gem = 0.0
+            self.unknown_percent_gem = 0.0
+
+        # coverage = ratio de celdas conocidas
+        self.coverage_gem = self.known_count_gem / self.total_count_gem if self.total_count_gem > 0 else 0.0
 
     # ------------------------------------------------------------------
     #   LEM (Local Egocentric Map) con escala configurable
@@ -269,6 +307,7 @@ class MapProcessor:
             gem[r0:r1 + 1, c0:c1 + 1] = self.gem_agent_marker_value
 
         self.gem_map = gem
+        self._compute_gem_stats()
         return gem
 
     # ------------------------------------------------------------------

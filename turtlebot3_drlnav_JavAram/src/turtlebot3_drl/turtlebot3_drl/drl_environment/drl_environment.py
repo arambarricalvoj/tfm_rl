@@ -162,10 +162,10 @@ class DRLEnvironment(Node):
             return
         
         self.exploration['previous'] = self.exploration['current']
-        self.exploration['current'] = (100 - self.processor.unknown_percent) / 100.0
+        self.exploration['current'] = (100 - self.processor.unknown_percent_gem) / 100.0
 
         self.get_logger().info(
-            f'Map updated: known%={100 - self.processor.unknown_percent:.1f} '
+            f'Map updated: known%={100 - self.processor.unknown_percent_gem:.1f} '
         )
 
         # acceder a métricas ya calculadas y loguearlas o publicarlas
