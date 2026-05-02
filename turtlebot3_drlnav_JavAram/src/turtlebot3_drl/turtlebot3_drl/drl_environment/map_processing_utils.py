@@ -228,7 +228,7 @@ class MapProcessor:
         # downsample NN a 24×24
         lem = np.zeros((H, W), dtype=np.uint8)
 
-        for i in range(H):
+        """for i in range(H):
             # nearest neighbor
             src_r = int(round((i + 0.5) * H_big / H - 0.5))
             src_r = min(max(src_r, 0), H_big - 1)
@@ -243,7 +243,27 @@ class MapProcessor:
                 elif v == UNKNOWN:
                     lem[i, j] = 128
                 elif v == OCCUPIED:
+                    lem[i, j] = 255"""
+        
+        for i in range(H):
+            for j in range(W):
+                r0 = int(i * H_big / H)
+                r1 = int((i+1) * H_big / H)
+                c0 = int(j * W_big / W)
+                c1 = int((j+1) * W_big / W)
+
+                block = canvas_big[r0:r1, c0:c1]
+
+                # max pooling real
+                v = block.max()
+
+                if v == OCCUPIED:
                     lem[i, j] = 255
+                elif v == FREE:
+                    lem[i, j] = 0
+                else:
+                    lem[i, j] = 128
+
 
         self.lem_map = lem
         return lem
