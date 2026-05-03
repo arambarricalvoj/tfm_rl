@@ -37,16 +37,16 @@ class Actor(Network):
 
         # --- MAP CNN ---
         self.cnn_extract_map = nn.Sequential(
-            nn.Conv2d(2, 4, kernel_size=3, stride=3),
+            nn.Conv2d(1, 4, kernel_size=3, stride=3),
             nn.ReLU(),
-            nn.Conv2d(4, 2, kernel_size=2, stride=2),
+            nn.Conv2d(4, 1, kernel_size=2, stride=2),
             nn.ReLU(),
             nn.AdaptiveMaxPool2d((4, 4)), 
             nn.Flatten()                 
         )
 
         # --- CONCATENATED FCN---
-        self.fa1 = nn.Linear(out_dimension+32+(state_size-NUM_SCAN_SAMPLES-24*24*2), hidden_size)
+        self.fa1 = nn.Linear(out_dimension+16+(state_size-NUM_SCAN_SAMPLES-24*24*1), hidden_size)
         self.fa2 = nn.Linear(hidden_size, hidden_size)
         self.fa3 = nn.Linear(hidden_size, action_size)
 
@@ -64,9 +64,9 @@ class Actor(Network):
         #maps = 
         #scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
         scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)   # [B, 500]
-        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 1152]  # [B, 1152]
-        maps = maps_flat.reshape(-1, 2, 24, 24)  # [B, 2, 24x24]
-        scalars = states[:, NUM_SCAN_SAMPLES + 1152 :]  # [B, 4]
+        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 576]  # [B, 1152]
+        maps = maps_flat.reshape(-1, 1, 24, 24)  # [B, 2, 24x24]
+        scalars = states[:, NUM_SCAN_SAMPLES + 576 :]  # [B, 4]
 
         # La CNN solo recibe laser, el resto de las variables se concatenan después de la CNN
         x_laser = self.cnn_extract_laser(scan)
@@ -95,8 +95,8 @@ class Critic(Network):
     def __init__(self, name, state_size, action_size, hidden_size):
         super(Critic, self).__init__(name)
         out_dimension = 20
-        maps_size = 32
-        scalar_size = state_size - NUM_SCAN_SAMPLES - 24*24*2
+        maps_size = 16
+        scalar_size = state_size - NUM_SCAN_SAMPLES - 24*24*1
 
         # --- LASER CNN (Twin Extractor) ---
         # Definimos el bloque para que Q1 y Q2 tengan extractores independientes
@@ -113,9 +113,9 @@ class Critic(Network):
         
         def get_maps_extractor():
             return nn.Sequential(
-                nn.Conv2d(2, 4, kernel_size=3, stride=3),
+                nn.Conv2d(1, 4, kernel_size=3, stride=3),
                 nn.ReLU(),
-                nn.Conv2d(4, 2, kernel_size=2, stride=2),
+                nn.Conv2d(4, 1, kernel_size=2, stride=2),
                 nn.ReLU(),
                 nn.AdaptiveMaxPool2d((4, 4)), 
                 nn.Flatten()                 
@@ -151,9 +151,9 @@ class Critic(Network):
         #scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
 
         scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)   # [B, 500]
-        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 1152]  # [B, 1152]
-        maps = maps_flat.reshape(-1, 2, 24, 24) # [B, 2, 24x24]
-        scalars = states[:, NUM_SCAN_SAMPLES + 1152 :]  # [B, 4]
+        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 576]  # [B, 1152]
+        maps = maps_flat.reshape(-1, 1, 24, 24) # [B, 2, 24x24]
+        scalars = states[:, NUM_SCAN_SAMPLES + 576 :]  # [B, 4]
 
         # --- Rama Q1 ---
         x1_laser = self.cnn_laser_q1(scan)
@@ -183,9 +183,9 @@ class Critic(Network):
         #scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)  # [Batch, 1, 250]
         #scalars = states[:, NUM_SCAN_SAMPLES:]            # [Batch, 4]
         scan = states[:, :NUM_SCAN_SAMPLES].unsqueeze(1)   # [B, 500]
-        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 1152]  # [B, 1152]
-        maps = maps_flat.reshape(-1, 2, 24, 24) # [B, 2, 24x24]
-        scalars = states[:, NUM_SCAN_SAMPLES + 1152 :]  # [B, 4]
+        maps_flat = states[:, NUM_SCAN_SAMPLES : NUM_SCAN_SAMPLES + 576]  # [B, 1152]
+        maps = maps_flat.reshape(-1, 1, 24, 24) # [B, 2, 24x24]
+        scalars = states[:, NUM_SCAN_SAMPLES + 576 :]  # [B, 4]
 
         x1_laser = self.cnn_laser_q1(scan)
         x1_maps = self.cnn_maps_q1(maps)

@@ -111,8 +111,9 @@ class DRLEnvironment(Node):
 
         self.map_sub = self.create_subscription( OccupancyGrid, '/map', self.map_callback, 10 ) 
         self.processor = MapProcessor()
-        self.processor.enable_lem = True
-        self.processor.enable_global_reduced_map = True
+        self.processor.enable_lem = False
+        self.processor.enable_global_reduced_map = False
+        self.processor.enable_global_reduced_occ_map = True
         self.processor.lem_scale = 3.5
         
         # GUI del mapa del paquete map_processor
@@ -149,11 +150,21 @@ class DRLEnvironment(Node):
 
         self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
 
+        # Historial de posiciones para la recompensa de explotación (r3)
+        self.path_history = [] 
+        # Índices del LiDAR que detectaron "Inf" en el paso anterior (r2)
+        self.inf_sectors_prev = set() 
+        # Posición y completitud del paso anterior
+        self.M_t_prev = 0.0
+        # Umbrales del paper
+        self.Lmin = 0.12 # Umbral de colisión inminente [4, 5]
+        self.dismin = 0.12 # Umbral para r3 (revisitar) [5, 6]
+
     """*******************************************************************************
     ** Callback functions and relevant functions
     *******************************************************************************"""
     def map_callback(self, msg: OccupancyGrid):
-        # actualizar el objeto MapProcessor con el OccupancyGrid recibido
+        """# actualizar el objeto MapProcessor con el OccupancyGrid recibido
         try:
             self.current_map_msg = msg
             self.processor.update_from_occupancy_grid(msg)
@@ -166,7 +177,7 @@ class DRLEnvironment(Node):
 
         self.get_logger().info(
             f'Map updated: known%={100 - self.processor.unknown_percent_gem:.1f} '
-        )
+        )"""
 
         # acceder a métricas ya calculadas y loguearlas o publicarlas
         #free = self.processor.free_percent
@@ -184,6 +195,24 @@ class DRLEnvironment(Node):
             f'bbox={bbox} '
             f'H={h} W={w}'
         )"""
+
+        try:
+            # Guardamos la completitud anterior antes de actualizar
+            self.M_t_prev = self.exploration['current']
+            
+            self.current_map_msg = msg
+            self.processor.update_from_occupancy_grid(msg)
+            
+            # El paper define M como (celdas ocupadas + libres) / total [7]
+            # Asegúrate de que unknown_percent refleje fielmente las celdas -1
+            self.exploration['current'] = (100.0 - self.processor.unknown_percent_gom) / 100.0
+            
+            self.get_logger().info(
+            f'Map updated: known%={100 - self.processor.unknown_percent_gom:.1f} '
+        )
+
+        except Exception as e:
+            self.get_logger().error(f'Error actualizando mapa: {e}')
     
     def quaternion_to_yaw(self, x, y, z, w):
         siny_cosp = 2.0 * (w * z + x * y)
@@ -286,7 +315,7 @@ class DRLEnvironment(Node):
         self.goal_angle = goal_angle"""
 
     # Active everytime scan topic receives a msg and save the reads in scan_ranges normalized using LIDAR_DISTANCE_CAP
-    def scan_callback(self, msg):
+    """def scan_callback(self, msg):
         if len(msg.ranges) != NUM_SCAN_SAMPLES:
             print(f"more or less scans than expected! check model.sdf, got: {len(msg.ranges)}, expected: {NUM_SCAN_SAMPLES}")
         # normalize laser values
@@ -299,6 +328,31 @@ class DRLEnvironment(Node):
         #print("SCAN OUT: ",self.scan_ranges[:10])
         #print("MSG OUT: ",msg.ranges[:10])
         #print("OBSTACLE DISTANCE: ", self.obstacle_distance)
+    """
+    
+    def scan_callback(self, msg):
+        # 1. Guardamos los sectores "Inf" actuales antes de procesar el nuevo scan
+        # Estos serán los 'inf_sectors_prev' cuando el agente tome la siguiente acción
+        self.inf_sectors_prev.clear()
+        
+        self.obstacle_distance = 1.0
+        for i in range(len(msg.ranges)):
+            dist = float(msg.ranges[i])
+            
+            # Identificar sectores "Inf" (fuera del rango del sensor) [2, 9]
+            # El paper dice que si el obstáculo está más allá del rango, es 'Inf'
+            if dist >= LIDAR_DISTANCE_CAP or dist == float('inf'):
+                self.inf_sectors_prev.add(i)
+            
+            # Normalización para el estado (state) [10]
+            norm_dist = numpy.clip(dist / LIDAR_DISTANCE_CAP, 0, 1)
+            self.scan_ranges[i] = norm_dist
+            
+            if norm_dist < self.obstacle_distance:
+                self.obstacle_distance = norm_dist
+
+        self.obstacle_distance *= LIDAR_DISTANCE_CAP
+
 	
     # Active everytime clock topic receives a msg and updates simulation time
     def clock_callback(self, msg):
@@ -344,26 +398,21 @@ class DRLEnvironment(Node):
         state = list(copy.deepcopy(self.scan_ranges))  # range: [0,1], longitud NUM_SCAN_SAMPLES
 
         # maps
-        lem = self.processor.lem_map
-        gem = self.processor.gem_map
-        if lem is None or gem is None:
-            maps_vec = np.zeros(24*24*2, dtype=np.float32)
+        gom = self.processor.gom_map
+        if gom is None:
+            maps_vec = np.zeros(24*24, dtype=np.float32)
         else:
             # flatten y concatenar
-            lem_f = lem.flatten().astype(np.float32)
-            gem_f = gem.flatten().astype(np.float32)
-            # normalizar (muy recomendable)
-            lem_f /= 255.0
-            gem_f /= 255.0
-            maps_vec = np.concatenate([lem_f, gem_f], axis=0)
+            gom_f = gom.flatten().astype(np.float32)
+            maps_vec = np.concatenate([gom_f], axis=0)
         state.extend(maps_vec)
 
         # acciones previas y yaw (escalas ya en [-1,1] y yaw en rad)
         state.append(float(action_linear_previous))
         state.append(float(action_angular_previous))
 
-        state.append(np.sin(float(self.pose['yaw'])))
-        state.append(np.cos(float(self.pose['yaw'])))
+        #state.append(np.sin(float(self.pose['yaw'])))
+        #state.append(np.cos(float(self.pose['yaw'])))
 
         state = [float(x) for x in state]
 
@@ -381,11 +430,8 @@ class DRLEnvironment(Node):
             if isinstance(v, float) and (v == float('inf') or v == float('-inf')):
                 logger.info(f"[STATE ERROR] idx={idx} valor=INF")
 
-
-
-        #state.append(float(self.exploration['current']))
-        #state.append(float(self.obstacle_distance/LIDAR_DISTANCE_CAP))
-
+        current_pos = np.array([self.pose['x'], self.pose['y']])
+        self.path_history.append(current_pos)
 
         self.local_step += 1
         if self.local_step <= 30: # Grace period to wait for simulation reset
@@ -423,8 +469,10 @@ class DRLEnvironment(Node):
         self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
         self.exploration = {'current': 0.0, 'previous': 0.0}
-        self.processor.lem_map = None
-        self.processor.gem_map = None
+        self.processor.gom_map = None
+        self.path_history = [] 
+        self.inf_sectors_prev = set() 
+        self.M_t_prev = 0.0
         response.state = self.get_state(0, 0)
         rw.reward_initialize(None)
         return response
@@ -462,8 +510,21 @@ class DRLEnvironment(Node):
         #cov_incr = max(0.0, (self.map_known_percent_curr - self.map_known_percent_prev) / 100.0)
 
         self.steps['count'] = self.local_step
-        
-        response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, self.obstacle_distance, self.exploration, self.steps))
+
+        dist_moved = math.sqrt((self.pose['x'] - self.prev_pose['x'])**2 + (self.pose['y'] - self.prev_pose['y'])**2)
+        heading_change = self.pose['yaw'] - self.prev_pose['yaw']
+        #response.reward = float(rw.get_reward_explore(self.succeed, action_linear, action_angular, self.obstacle_distance, self.exploration, self.steps))
+        response.reward = float(rw.calculate_bee_reward(
+            succeed=self.succeed,
+            min_dist=self.obstacle_distance,
+            dist_moved=dist_moved,
+            M_t=self.exploration['current'],
+            M_t_prev=self.exploration['previous'],
+            heading_change=heading_change,
+            inf_sectors_indices=self.inf_sectors_prev, # Guardado en el scan_callback
+            current_pos=self.pose,
+            path_history=self.path_history
+        ))
         response.done = self.done
         response.success = self.succeed
         response.distance_traveled = 0.0 # Will be updated at the end of episode

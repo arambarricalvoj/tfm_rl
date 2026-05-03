@@ -55,6 +55,21 @@ class MapProcessor:
         self.explored_bbox_gem = None
         self.explored_bbox_size_gem = None
 
+        # métricas GOM
+        self.total_count_gom = 0
+        self.known_count_gom = 0
+        self.unknown_count_gom = 0
+        self.free_count_gom = 0
+        self.occupied_count_gom = 0
+
+        self.known_percent_gom = 0.0
+        self.unknown_percent_gom = 0.0
+        self.coverage_gom = 0.0
+        self.mean_occupancy_gom = 0.0
+
+        self.explored_bbox_gom = None
+        self.explored_bbox_size_gom = None
+
         # bounding box explorado
         self.explored_bbox = None
         self.explored_bbox_size = None
@@ -62,18 +77,21 @@ class MapProcessor:
         # mapas derivados
         self.lem_size = (24, 24)
         self.gem_size = (24, 24)
+        self.gom_size = (25, 25)
         self.lem_scale = 4  # configurable externamente
         self.lem_map = None
         self.gem_map = None
         self.cnn_map = None
+        self.gom_map = None
 
         # parámetros GEM
         self.gem_agent_marker_size = 3
         self.gem_agent_marker_value = 128
 
         # flags
-        self.enable_lem = True
-        self.enable_global_reduced_map = True
+        self.enable_lem = False
+        self.enable_global_reduced_map = False
+        self.enable_global_reduced_occ_map = True
 
         # plotting
         self._fig = None
@@ -118,6 +136,9 @@ class MapProcessor:
 
         if self.enable_global_reduced_map:
             self.compute_gem()
+        
+        if self.enable_global_reduced_occ_map:
+            self.compute_gom()
 
         self._update_cnn_map()
 
@@ -182,6 +203,37 @@ class MapProcessor:
 
         # coverage = ratio de celdas conocidas
         self.coverage_gem = self.known_count_gem / self.total_count_gem if self.total_count_gem > 0 else 0.0
+
+    def _compute_gom_stats(self):
+        if self.gom_map is None:
+            return
+
+        # total de celdas
+        self.total_count_gom = self.gom_map.size
+
+        # desconocido = -1
+        self.unknown_count_gom = int((self.gom_map == -1).sum())
+
+        # conocido = 0 (libre) + 1 (ocupado)
+        known_mask = (self.gom_map == 0) | (self.gom_map == 1)
+        self.known_count_gom = int(known_mask.sum())
+
+        # libre = 0
+        self.free_count_gom = int((self.gom_map == 0).sum())
+
+        # ocupado = 1
+        self.occupied_count_gom = int((self.gom_map == 1).sum())
+
+        # porcentajes
+        if self.total_count_gom > 0:
+            self.known_percent_gom = 100.0 * self.known_count_gom / self.total_count_gom
+            self.unknown_percent_gom = 100.0 * self.unknown_count_gom / self.total_count_gom
+        else:
+            self.known_percent_gom = 0.0
+            self.unknown_percent_gom = 0.0
+
+        # coverage = ratio de celdas conocidas
+        self.coverage_gom = self.known_count_gom / self.total_count_gom if self.total_count_gom > 0 else 0.0
 
     # ------------------------------------------------------------------
     #   LEM (Local Egocentric Map) con escala configurable
@@ -329,9 +381,65 @@ class MapProcessor:
         self.gem_map = gem
         self._compute_gem_stats()
         return gem
+    
+    # ------------------------------------------------------------------
+    #   GOM (Global Occupancy Map) 25×25
+    # ------------------------------------------------------------------
+    def compute_gom(self):
+        if self.map_data is None or self.explored_bbox is None:
+            self.gom_map = None
+            return None
+
+        min_r, min_c, max_r, max_c = self.explored_bbox
+        sub = self.map_data[min_r:max_r + 1, min_c:max_c + 1]
+
+        gom_src = np.zeros_like(sub, dtype=np.int8)
+        gom_src[sub == UNKNOWN] = -1
+        gom_src[sub == FREE] = 0
+        gom_src[sub == OCCUPIED] = 1
+
+        H_in, W_in = gom_src.shape
+        H_out, W_out = self.gem_size
+
+        gom = np.zeros((H_out, W_out), dtype=np.int8)
+
+        for i in range(H_out):
+            r0 = int(i * H_in / H_out)
+            r1 = int((i + 1) * H_in / H_out)
+            for j in range(W_out):
+                c0 = int(j * W_in / W_out)
+                c1 = int((j + 1) * W_in / W_out)
+
+                block = gom_src[r0:r1, c0:c1]
+
+                # Conteos
+                n_unknown = np.sum(block == -1)
+                n_free = np.sum(block == 0)
+                n_occ = np.sum(block == 1)
+                total = block.size
+
+                # UMBRALES (ajustables)
+                unknown_ratio = n_unknown / total
+                occ_ratio = n_occ / total
+
+                # Regla 1: si el bloque es mayoritariamente desconocido
+                if unknown_ratio > 0.6:
+                    gom[i, j] = -1
+                # Regla 2: si hay suficiente ocupado
+                elif occ_ratio > 0.1:
+                    gom[i, j] = 1
+                # Regla 3: si no hay ocupado pero sí libres
+                elif n_free > 0:
+                    gom[i, j] = 0
+                else:
+                    gom[i, j] = -1
+
+        self.gom_map = gom
+        self._compute_gom_stats()
+        return gom
 
     # ------------------------------------------------------------------
-    #   CNN MAP
+    #   CNN MAP (LEM + GEM)
     # ------------------------------------------------------------------
     def _update_cnn_map(self):
         if self.lem_map is None or self.gem_map is None:
@@ -381,13 +489,38 @@ class MapProcessor:
         if self._fig is not None:
             return
 
-        self._fig, self._axs = plt.subplots(1, 3, figsize=(12, 4))
-        titles = ["Global Map", "LEM", "GEM"]
+        panels = []
+        titles = []
+
+        # Panel 0: Global Map
+        if self.enable_global_reduced_map:
+            panels.append("global")
+            titles.append("Global Map")
+
+        # Panel 1: LEM
+        if self.enable_lem:
+            panels.append("lem")
+            titles.append("LEM")
+
+        # Panel 2: GEM/GOM
+        if self.enable_global_reduced_occ_map:
+            panels.append("gom")
+            titles.append("GOM")
+
+        self._active_panels = panels
+
+        n = len(panels)
+        self._fig, self._axs = plt.subplots(1, n, figsize=(4*n, 4))
+
+        if n == 1:
+            self._axs = [self._axs]  # normalizar a lista
+
         for ax, t in zip(self._axs, titles):
             ax.set_title(t)
             ax.axis('off')
 
-        self._im_list = [None, None, None]
+        self._im_list = [None] * n
+
         plt.ion()
         plt.show()
 
@@ -395,37 +528,34 @@ class MapProcessor:
         if self._fig is None or self.map_data is None:
             return
 
-        # panel 0
-        ax0 = self._axs[0]
-        if self._im_list[0] is None:
-            cmap, norm = self._get_global_cmap()
-            self._im_list[0] = ax0.imshow(self.map_data, cmap=cmap, norm=norm, origin='lower')
-        else:
-            self._im_list[0].set_data(self.map_data)
+        for idx, panel in enumerate(self._active_panels):
+            ax = self._axs[idx]
 
-        # panel 1
-        lem = self.lem_map
-        if lem is not None:
-            ax1 = self._axs[1]
-            if self._im_list[1] is None:
-                cmap_lem = mcolors.ListedColormap(['black', 'gray', 'white'])
-                bounds = [0, 1, 129, 256]
-                norm_lem = mcolors.BoundaryNorm(bounds, cmap_lem.N)
-                self._im_list[1] = ax1.imshow(lem, cmap=cmap_lem, norm=norm_lem, origin='lower')
-            else:
-                self._im_list[1].set_data(lem)
+            if panel == "global":
+                data = self.map_data
+                cmap, norm = self._get_global_cmap()
 
-        # panel 2
-        gem = self.gem_map
-        if gem is not None:
-            ax2 = self._axs[2]
-            if self._im_list[2] is None:
-                cmap_gem = mcolors.ListedColormap(['black', 'gray', 'white'])
+            elif panel == "lem":
+                data = self.lem_map
+                if data is None:
+                    continue
+                cmap = mcolors.ListedColormap(['black', 'gray', 'white'])
                 bounds = [0, 1, 129, 256]
-                norm_gem = mcolors.BoundaryNorm(bounds, cmap_gem.N)
-                self._im_list[2] = ax2.imshow(gem, cmap=cmap_gem, norm=norm_gem, origin='lower')
+                norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+            elif panel == "gom":
+                data = self.gom_map
+                if data is None:
+                    continue
+                cmap = mcolors.ListedColormap(['black', 'white', 'red'])
+                bounds = [-1.5, -0.5, 0.5, 1.5]
+                norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+            # Crear o actualizar imagen
+            if self._im_list[idx] is None:
+                self._im_list[idx] = ax.imshow(data, cmap=cmap, norm=norm, origin='lower')
             else:
-                self._im_list[2].set_data(gem)
+                self._im_list[idx].set_data(data)
 
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
