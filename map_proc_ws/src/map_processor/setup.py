@@ -27,6 +27,7 @@ setup(
             'map_processor = map_processor.map_node:main',
             'laser_resync = map_processor.laser_resync:main',
             'reset_slam = map_processor.reset_slam:main',
+            'lidar_viewer = map_processor.lidar_viewer:main',
         ],
     },
 )

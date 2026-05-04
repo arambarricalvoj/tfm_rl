@@ -377,7 +377,7 @@
                         <samples>500</samples>
                         <!--<samples>500</samples>-->
                         <min_angle>0</min_angle>
-                        <max_angle>360</max_angle>
+                        <max_angle>6.28318530718</max_angle>
                     </horizontal>
                 </scan>
                 <range>

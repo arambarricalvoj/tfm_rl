@@ -48,6 +48,10 @@ from lifecycle_msgs.srv import ChangeState
 from lifecycle_msgs.msg import Transition
 from nav_msgs.msg import OccupancyGrid
 
+import random
+from gazebo_msgs.msg import EntityState
+from gazebo_msgs.srv import SetEntityState
+
 
 NO_GOAL_SPAWN_MARGIN = 0.3 # meters away from any wall
 
@@ -96,6 +100,26 @@ class DRLGazebo(Node):
         self.task_fail_server       = self.create_service(RingGoal, 'task_fail', self.task_fail_callback)
 
         self.obstacle_coordinates   = self.get_obstacle_coordinates()
+
+        self.set_entity_state_client = self.create_client(SetEntityState, '/gazebo/set_entity_state')
+
+        # Posiciones base seguras (centros de zonas válidas)
+        self.base_positions = [
+            {"x": -2.0, "y": 0.0, "yaw": 0.0, "dx": 0.4, "dy": 1.0, "dyaw": 6.28},
+            {"x": -1.5, "y": -2.0, "yaw": 0.0, "dx": 0.4, "dy": 0.0, "dyaw": 6.28},
+            {"x": 0.0, "y": 0.0, "yaw": 0.0, "dx": 0.5, "dy": 0.4, "dyaw": 6.28},
+            {"x": 0.45, "y": -1.55, "yaw": 0.0, "dx": 0.0, "dy": 0.0, "dyaw": 6.28},
+            {"x": 2.0, "y": -1.0, "yaw": 0.0, "dx": 0.3, "dy": 1.0, "dyaw": 6.28},
+            {"x": 2.15, "y": 1.6, "yaw": 0.0, "dx": 0.4, "dy": 0.8, "dyaw": 6.28},
+            {"x": 0.25, "y": 1.95, "yaw": 0.0, "dx": 0.4, "dy": 0.4, "dyaw": 6.28},
+            {"x": -1.3, "y": 2.4, "yaw": 0.0, "dx": 1.0, "dy": 0.0, "dyaw": 6.28},
+            {"x": -1.3, "y": 1.25, "yaw": 0.0, "dx": 1.0, "dy": 0.0, "dyaw": 6.28},
+            {"x": -0.65, "y": 0.0, "yaw": 0.0, "dx": 1.25, "dy": 0.0, "dyaw": 6.28},
+            {"x": -1.0, "y": -1.0, "yaw": 0.0, "dx": 1.0, "dy": 0.0, "dyaw": 6.28},
+            {"x": 0.5, "y": -1.0, "yaw": 0.0, "dx": 0.0, "dy": 1.3, "dyaw": 6.28},
+            {"x": 1.5, "y": 0.5, "yaw": 0.0, "dx": 0.0, "dy": 1.0, "dyaw": 6.28}
+        ]
+
         self.init_callback()
 
     """*******************************************************************************
@@ -233,6 +257,48 @@ class DRLGazebo(Node):
         #self.goal_y = float(0.0)
         self.publish_callback()
 
+    def sample_safe_spawn(self):
+        base = random.choice(self.base_positions)
+
+        x = base["x"] + random.uniform(-base["dx"], base["dx"])
+        y = base["y"] + random.uniform(-base["dy"], base["dy"])
+        yaw = base["yaw"] + random.uniform(-base["dyaw"], base["dyaw"])
+
+        return x, y, yaw
+    
+    def teleport_create3(self, x, y, z, yaw):
+        state = EntityState()
+        state.name = "create3"
+        state.pose.position.x = x
+        state.pose.position.y = y
+        state.pose.position.z = z
+        state.pose.orientation.z = math.sin(yaw / 2.0)
+        state.pose.orientation.w = math.cos(yaw / 2.0)
+        state.reference_frame = "world"
+
+        req = SetEntityState.Request()
+        req.state = state
+
+        future = self.set_entity_state_client.call_async(req)
+
+        def cb(fut):
+            try:
+                resp = fut.result()
+                self.get_logger().info(f"Teletransporte OK: {resp.success}")
+            except Exception as e:
+                self.get_logger().error(f"Error teletransportando: {e}")
+
+        future.add_done_callback(cb)
+    
+    def reset_simulation(self):
+        # 1. Parar el robot
+        self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
+
+        # 2. Reset SLAM
+        if self.reset_slam_client.wait_for_service(timeout_sec=1.0):
+            slam_req = Trigger.Request()
+            self.reset_slam_client.call_async(slam_req)
+    
     def reset_simulation(self):
         # 1. Parar el robot
         self.move_robot(linear_x=0.0, angular_z=0.0, duration=0.5)
@@ -251,7 +317,16 @@ class DRLGazebo(Node):
         gazebo_req = Empty.Request()
         gazebo_future = self.reset_simulation_client.call_async(gazebo_req)
 
-        self.get_logger().info("RESET SIMULATION completado.")
+        # 4. Generar pose aleatoria segura
+        x, y, yaw = self.sample_safe_spawn()
+        z = 0.01
+
+        # 5. Teletransportar el robot
+        self.teleport_create3(x, y, z, yaw)
+
+        self.get_logger().info(
+            f"RESET completado. Nueva pose: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}"
+        )
     
     def move_robot(self, linear_x=0.0, angular_z=0.0, duration=0.1):
         msg = Twist()
