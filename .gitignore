@@ -12,5 +12,6 @@ turtlebot3_drlnav_JavAram/log/*
 map_proc_ws/build/*
 map_proc_ws/install/*
 map_proc_ws/log/*
-
+*.pt
+*.pkl
 

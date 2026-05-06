@@ -1,0 +1,3 @@
+- 0: entrenamiento sin posicionamiento aleatorion del robot al reiniciar episodios, con el LEM mal (paredes se diluyen con lo desconocido), y el success su condición mal (cogía del mapa global y no del gem)
+- 1: 
+- localhost...: entrenamiento con LEM corregido,teleoperación con mouse y condición success corregida.

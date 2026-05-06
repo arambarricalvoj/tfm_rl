@@ -103,4 +103,9 @@ Terminal 5:
 ros2 run map_processor reset_slam
 ```
 
+TELEOPERACIÓN:
+```bash
+ros2 run mouse_teleop mouse_teleop
+```
+
 **IMPORTANTE**: arrancar primero gazebo + rviz y SLAM, y cuando salga el mapa en RVIZ se puede arrancar el resto.

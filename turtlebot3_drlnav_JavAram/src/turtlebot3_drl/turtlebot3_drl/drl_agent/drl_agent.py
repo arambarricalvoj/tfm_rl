@@ -37,11 +37,17 @@ from .td3 import TD3
 
 from turtlebot3_msgs.srv import DrlStep, Goal
 from std_srvs.srv import Empty
+from sensor_msgs.msg import LaserScan
+from rclpy.qos import qos_profile_sensor_data
+import numpy
+from ..common.settings import LIDAR_DISTANCE_CAP, TOPIC_SCAN
+from geometry_msgs.msg import Twist
 
 import rclpy
 from rclpy.node import Node
 from ..common.replaybuffer import ReplayBuffer
 
+NUM_SCAN_SAMPLES = 500
 
 class DrlAgent(Node):
     def __init__(self, training, algorithm, load_session="", load_episode=0, real_robot=0):
@@ -120,7 +126,43 @@ class DrlAgent(Node):
         if not self.real_robot:
             self.gazebo_pause = self.create_client(Empty, '/pause_physics')
             self.gazebo_unpause = self.create_client(Empty, '/unpause_physics')
+        
+        self.scan_ranges = np.zeros(500)
+        self.obstacle_distance = 1.0
+
+        self.scan_topic = TOPIC_SCAN
+        self.scan_sub = self.create_subscription(LaserScan, self.scan_topic, self.scan_callback, qos_profile=qos_profile_sensor_data)
+
+        # valores por defecto
+        self.mouse_linear = 0.0
+        self.mouse_angular = 0.0
+
+        # suscriptor al mouse teleop
+        self.mouse_sub = self.create_subscription(Twist,'mouse_vel',self.mouse_callback,10)
+
         self.process()
+
+    def scan_callback(self, msg):
+        if len(msg.ranges) != 500:
+            print(f"more or less scans than expected! check model.sdf, got: {len(msg.ranges)}, expected: {NUM_SCAN_SAMPLES}")
+        # normalize laser values
+        self.obstacle_distance = 1
+        for i in range(500):
+                self.scan_ranges[i] = numpy.clip(float(msg.ranges[i]) / LIDAR_DISTANCE_CAP, 0, 1)
+                if self.scan_ranges[i] < self.obstacle_distance: 
+                    self.obstacle_distance = self.scan_ranges[i] 
+        self.obstacle_distance *= LIDAR_DISTANCE_CAP
+        #print("SCAN OUT: ",self.scan_ranges[:10])
+        #print("MSG OUT: ",msg.ranges[:10])
+        #print("OBSTACLE DISTANCE: ", self.obstacle_distance)
+
+    def mouse_callback(self, msg):
+        if msg.linear.x < 0.0:
+            self.mouse_linear = -1.0
+        else:
+            self.mouse_linear = msg.linear.x
+        self.mouse_linear = np.clip(self.mouse_linear, -1.0, 1.0)
+        self.mouse_angular = np.clip(msg.angular.z, -1.0, 1.0)
 
     def process(self):
         util.pause_simulation(self, self.real_robot)
@@ -144,7 +186,8 @@ class DrlAgent(Node):
 
             while not episode_done:
                 if self.training and self.total_steps < self.observe_steps:
-                    action = self.model.get_action_random()
+                    #action = self.model.get_action_random()
+                    action = [self.mouse_linear, self.mouse_angular]
                 else:
                     action = self.model.get_action(state, self.training, step, ENABLE_VISUAL)
 
