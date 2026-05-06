@@ -73,10 +73,10 @@ HIDDEN_SIZE     = 512       # Number of neurons in hidden layers
 BATCH_SIZE      = 128      # Number of samples per training batch
 BUFFER_SIZE     = 1000000   # Number of samples stored in replay buffer before FIFO
 DISCOUNT_FACTOR = 0.99
-LEARNING_RATE   = 0.001/10.0 # /1000.0
+LEARNING_RATE   = 0.001/1.0 # /1000.0
 TAU             = 0.003
 
-OBSERVE_STEPS   = 15000     # At training start random actions are taken for N steps for better exploration
+OBSERVE_STEPS   = 15000 #15000     # At training start random actions are taken for N steps for better exploration
 STEP_TIME       = 0.1 #0.01      # Delay between steps, can be set to 0
 EPSILON_DECAY   = 0.9995 #0.9999995    # Epsilon decay per step
 EPSILON_MINIMUM = 0.05
@@ -90,7 +90,7 @@ TARGET_UPDATE_FREQUENCY = 1000
 # TD3 parameters
 POLICY_NOISE            = 0.2
 POLICY_NOISE_CLIP       = 0.5
-POLICY_UPDATE_FREQUENCY = 2
+POLICY_UPDATE_FREQUENCY = 4
 
 # Stacking
 STACK_DEPTH = 3             # Number of subsequent frames processed per step
