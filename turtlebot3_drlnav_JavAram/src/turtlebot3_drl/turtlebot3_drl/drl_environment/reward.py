@@ -22,7 +22,7 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
         gd_init = float(goal_dist)
     r_distance = (2 * gd_init) / (gd_init + float(goal_dist)) - 1  # Reward getting closer to the goal
 
-    # [-20, 0] muy fuerte
+    # [-2, 0] muy fuerte
     if min_obstacle_dist < 0.22:
         r_obstacle = -20.0
     else:
@@ -40,10 +40,10 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
 
 def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist, exploration, steps):
 
-    # [-4, 0] bien
-    r_vangular = -1.0 * (action_angular ** 2)
+    # [-4, 0] bien 
+    r_vangular = -2.0 * (action_angular ** 2)
     # [-18, 0] fuerte
-    r_vlinear = -1.0 * (((0.3 - action_linear) * 10.0) ** 2)
+    r_vlinear = -2.0 * (((0.3 - action_linear) * 10.0) ** 2)
 
     #r_vlinear = -0.2 * ((0.3 - action_linear) ** 2)
     #r_vangular = -0.1 * (action_angular ** 2)
@@ -56,9 +56,9 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
         r_obstacle = 0.0
 
     # --- 3) Exploración (adaptado del paper) ---
-    rho_prev = float(exploration["previous"])
-    rho_curr = float(exploration["current"])
-    delta_sq = rho_curr**2 - rho_prev**2
+    rho_prev = 100*float(exploration["previous"])
+    rho_curr = 100*float(exploration["current"])
+    delta_sq = (rho_curr - rho_prev)**2
 
     if delta_sq > 0.0:
         # Paper: clip(10 * (rho_t^2 - rho_{t-1}^2), 0, 1)
@@ -71,9 +71,9 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
 
     reward = (r_vangular + r_vlinear + r_obstacle + r_exploration + r_time) / 1000.0
     if succeed == SUCCESS:
-        reward += 2.0
+        reward += 5.0
     elif succeed in (COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE):
-        reward -= 5.0
+        reward -= 2.0
     elif succeed == TIMEOUT:
         reward -= 1.0
 

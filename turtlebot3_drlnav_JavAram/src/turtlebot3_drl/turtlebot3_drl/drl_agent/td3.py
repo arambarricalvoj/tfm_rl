@@ -37,16 +37,16 @@ class Actor(Network):
 
         # --- MAP CNN ---
         self.cnn_extract_map = nn.Sequential(
-            nn.Conv2d(2, 4, kernel_size=3, stride=3),
+            nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(4, 2, kernel_size=2, stride=2),
+            nn.Conv2d(16, 2, kernel_size=2, stride=2, padding=1),
             nn.ReLU(),
-            nn.AdaptiveMaxPool2d((4, 4)), 
+            nn.AdaptiveMaxPool2d((5, 5)), 
             nn.Flatten()                 
         )
 
         # --- CONCATENATED FCN---
-        self.fa1 = nn.Linear(out_dimension+32+(state_size-NUM_SCAN_SAMPLES-24*24*2), hidden_size)
+        self.fa1 = nn.Linear(out_dimension+50+(state_size-NUM_SCAN_SAMPLES-24*24*2), hidden_size)
         self.fa2 = nn.Linear(hidden_size, hidden_size)
         self.fa3 = nn.Linear(hidden_size, action_size)
 
@@ -95,7 +95,7 @@ class Critic(Network):
     def __init__(self, name, state_size, action_size, hidden_size):
         super(Critic, self).__init__(name)
         out_dimension = 20
-        maps_size = 32
+        maps_size = 50
         scalar_size = state_size - NUM_SCAN_SAMPLES - 24*24*2
 
         # --- LASER CNN (Twin Extractor) ---
@@ -111,15 +111,16 @@ class Critic(Network):
                 nn.Flatten() 
             )
         
+     # --- MAP CNN ---
         def get_maps_extractor():
             return nn.Sequential(
-                nn.Conv2d(2, 4, kernel_size=3, stride=3),
+                nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1),
                 nn.ReLU(),
-                nn.Conv2d(4, 2, kernel_size=2, stride=2),
+                nn.Conv2d(16, 2, kernel_size=2, stride=2, padding=1),
                 nn.ReLU(),
-                nn.AdaptiveMaxPool2d((4, 4)), 
+                nn.AdaptiveMaxPool2d((5, 5)), 
                 nn.Flatten()                 
-            )
+        )
 
         self.cnn_laser_q1 = get_laser_extractor()
         self.cnn_laser_q2 = get_laser_extractor()

@@ -391,7 +391,7 @@ class DRLEnvironment(Node):
         if self.local_step <= 30: # Grace period to wait for simulation reset
             return state
         # Success
-        if (100 - self.processor.unknown_percent) > 95.0:
+        if (100 - self.processor.unknown_percent_gem) > 95.0:
             self.succeed = SUCCESS
         # Collision
         elif self.obstacle_distance < THRESHOLD_COLLISION: # obstacle_distance is the minmum distance from LiDAR, if it is below threshold, collision happened
