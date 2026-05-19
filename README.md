@@ -104,3 +104,8 @@ ros2 run map_processor reset_slam
 ```
 
 **IMPORTANTE**: arrancar primero gazebo + rviz y SLAM, y cuando salga el mapa en RVIZ se puede arrancar el resto.
+
+# Inferencia
+```bash
+ros2 run turtlebot3_drl test_agent td3 td3_13_stage_9 12000
+```
