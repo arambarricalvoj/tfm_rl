@@ -39,9 +39,9 @@ MAX_NUMBER_OBSTACLES        = 6
 ENABLE_MOTOR_NOISE          = False # Add normally distributed noise to motor output to simulate hardware imperfections
 
 # --- REAL ROBOT ENVIRONMENT SETTINGS ---
-REAL_TOPIC_SCAN  = 'scan'
-REAL_TOPIC_VELO  = 'cmd_vel'
-REAL_TOPIC_ODOM  = 'odom'
+REAL_TOPIC_SCAN  = 'scan_stable'
+REAL_TOPIC_VELO  = '/vin/cmd_vel'
+REAL_TOPIC_ODOM  = '/vin/odom'
 
 # LiDAR density count your robot is providing
 # NOTE: If you change this value you also have to modify
