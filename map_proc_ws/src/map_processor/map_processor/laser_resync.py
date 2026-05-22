@@ -9,7 +9,7 @@ class LaserResync(Node):
         # Suscriptor al /scan original
         self.sub = self.create_subscription(
             LaserScan,
-            '/scan',
+            '/scan_stable',
             self.callback,
             10
         )

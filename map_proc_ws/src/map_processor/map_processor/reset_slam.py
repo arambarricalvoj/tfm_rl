@@ -11,8 +11,11 @@ class SlamManager(Node):
 
         self.slam_cmd = [
             'ros2', 'launch', 'slam_toolbox', 'online_async_launch.py',
-            'use_sim_time:=True',
-            'slam_params_file:=create3_ws/src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml'
+            '--ros-args',
+            '--params-file', 'create3_ws/src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml',
+            '-p', 'use_sim_time:=false',
+            '-r', '/tf:=/vin/tf',
+            '-r', '/tf_static:=/vin/tf_static'
         ]
 
         self.slam_process = None

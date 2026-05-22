@@ -11,7 +11,7 @@ class LidarPolarViewer(Node):
 
         self.subscription = self.create_subscription(
             LaserScan,
-            '/scan',
+            '/scan_stable',
             self.scan_callback,
             10
         )
