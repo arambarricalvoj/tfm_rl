@@ -109,3 +109,57 @@ ros2 run map_processor reset_slam
 ```bash
 ros2 run turtlebot3_drl test_agent td3 td3_13_stage_9 12000
 ```
+
+# Robot Real
+
+Terminal 1 (Raspberry Pi - no docker) - Run RPLIDAR + tf LIDAR-Robot:
+```bash
+# Connect to Raspbery Pi (recommended to use ssh)
+cd ros2_ws
+./launch_slam.sh
+```
+
+Terminal 2 (Raspberry Pi - no docker) - Node to transform scan to a fixed 500 samples:
+```bash
+# Connect to Raspbery Pi (recommended to use ssh)
+python3 scan_resampler.py
+```
+
+Terminal 3 - Run RL Environment:
+```bash
+# Run first source commands as indicated above
+touch /tmp/drlnav_current_stage.txt
+echo 9 > /tmp/drlnav_current_stage.txt
+export ROS_DOMAIN_ID=0
+ros2 run turtlebot3_drl real_environment
+```
+
+Terminal 4 - SLAM:
+```bash
+# Run first source commands as indicated above
+cd /home/$USER/
+export ROS_DOMAIN_ID=0
+ros2 run slam_toolbox async_slam_toolbox_node   --ros-args   --params-file /home/raul/create3_ws/src/irobot_create_common/irobot_create_common_bringup/config/mapper_params_online_async.yaml   -p use_sim_time:=false   -r /tf:=/vin/tf   -r /tf_static:=/vin/tf_static
+```
+
+Terminal 5 - Policy:
+```bash
+# Run first source commands as indicated above
+export ROS_DOMAIN_ID=0
+ros2 run turtlebot3_drl real_agent td3 'td3_19_stage_9' 5300
+```
+
+Terminal X (Optional) - Rviz:
+```bash
+# Run first source commands as indicated above
+export ROS_DOMAIN_ID=0
+ros2 run rviz2 rviz2 -d /home/raul/rviz-config-real.rviz --ros-args -r /tf:=/vin/tf -r /tf_static:=/vin/tf_static
+```
+
+Terminal Y (Optional) - Teleoperate movement:
+```bash
+# Run first source commands as indicated above
+export ROS_DOMAIN_ID=0
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/vin/cmd_vel
+```
+
