@@ -41,9 +41,9 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
 def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist, exploration, steps):
 
     # [-4, 0] bien 
-    r_vangular = -2.0 * (action_angular ** 2)
+    r_vangular = -3.0 * (action_angular ** 2)
     # [-18, 0] fuerte
-    r_vlinear = -2.0 * (((0.3 - action_linear) * 10.0) ** 2)
+    r_vlinear = -3.0 * (((0.3 - action_linear) * 10.0) ** 2)
 
     #r_vlinear = -0.2 * ((0.3 - action_linear) ** 2)
     #r_vangular = -0.1 * (action_angular ** 2)
@@ -62,10 +62,29 @@ def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist
 
     if delta_sq > 0.0:
         # Paper: clip(10 * (rho_t^2 - rho_{t-1}^2), 0, 1)
-        r_exploration = min(10.0 * delta_sq, 1.0) * 100.0
+        r_exploration = min(5.0 * delta_sq, 1.0) * 100.0
     else:
         # Paper: -0.005 → lo llevamos a tu escala *1000
         r_exploration = -0.5
+
+    """rho_prev = 100 * float(exploration["previous"])   # en %
+    rho_curr = 100 * float(exploration["current"])
+    delta = rho_curr - rho_prev                       # incremento en %
+
+    if delta > 0.0:
+        base = 10.0
+
+        # 3% → 1.0
+        delta_norm = min(delta / 1.0, 1.0)
+
+        # curva extra: ajusta alpha para dar más peso a incrementos pequeños
+        alpha = 0.85   # prueba 0.7 o 0.5 si quieres más fuerza al principio
+        extra = 90.0 * (delta_norm ** alpha)   # máximo 70
+
+        r_exploration = base + extra           # máximo 100
+    else:
+        r_exploration = -0.5"""
+
 
     r_time = -1.0 
 
