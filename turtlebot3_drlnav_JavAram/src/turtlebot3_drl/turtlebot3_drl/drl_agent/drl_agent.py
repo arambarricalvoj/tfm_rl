@@ -152,7 +152,7 @@ class DrlAgent(Node):
                 if self.algorithm == 'dqn':
                     action_current = self.model.possible_actions[action]
 
-                next_state, reward, episode_done, outcome, distance_traveled = util.step(self, action_current, action_past)
+                next_state, reward, episode_done, outcome, distance_traveled, exploration_pct = util.step(self, action_current, action_past)
                 action_past = copy.deepcopy(action_current)
                 reward_sum += reward
 
@@ -180,9 +180,9 @@ class DrlAgent(Node):
             self.total_steps += step
             duration = time.perf_counter() - episode_start
 
-            self.finish_episode(step, duration, outcome, distance_traveled, reward_sum, loss_critic, loss_actor)
+            self.finish_episode(step, duration, outcome, distance_traveled, reward_sum, loss_critic, loss_actor, exploration_pct)
 
-    def finish_episode(self, step, eps_duration, outcome, dist_traveled, reward_sum, loss_critic, lost_actor):
+    def finish_episode(self, step, eps_duration, outcome, dist_traveled, reward_sum, loss_critic, lost_actor, exploration_pct):
         if self.total_steps < self.observe_steps:
             print(f"Observe phase: {self.total_steps}/{self.observe_steps} steps")
             return
@@ -195,7 +195,7 @@ class DrlAgent(Node):
             self.logger.update_test_results(step, outcome, dist_traveled, eps_duration, 0)
             return
 
-        self.graph.update_data(step, self.total_steps, outcome, reward_sum, loss_critic, lost_actor)
+        self.graph.update_data(step, self.total_steps, outcome, reward_sum, loss_critic, lost_actor, exploration_pct)
         self.logger.file_log.write(
             f"{self.episode}, {reward_sum}, {outcome}, {eps_duration}, {step}, {self.total_steps}, "
             f"{self.replay_buffer.get_length()}, {loss_critic / step}, {lost_actor / step}\n"
