@@ -118,6 +118,7 @@ class DRLEnvironment(Node):
         # GUI del mapa del paquete map_processor
         try:
             self.processor.start_plot()
+            self.processor.show_path_window()
         except Exception as e:
             self.get_logger().warn(f'No se pudo iniciar plot: {e}')
         
@@ -422,7 +423,13 @@ class DRLEnvironment(Node):
         self.prev_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.diff_pose = {'x': 0.0, 'y': 0.0, 'yaw': 0.0}
         self.steps = {'progress': 0, 'since_last_progress': 0, 'total': 0}
+
         self.exploration = {'current': 0.0, 'previous': 0.0}
+        
+        self.processor.set_final_cell()
+        # Ruta Docker
+        self.processor.save_map_png("/home/isaac_sim/turtlebot3_drlnav_ws/src/turtlebot3_drl/model/Precision-5820-Tower-X-Series/td3_8_stage_9/trayectoria_final.png")
+        self.processor.reset_path()
         self.processor.lem_map = None
         self.processor.gem_map = None
         response.state = self.get_state(0, 0)
@@ -478,6 +485,9 @@ class DRLEnvironment(Node):
         if self.local_step % 200 == 0: # Log every 200 steps, print useful info in console
             print(f"Rtot: {response.reward:<8.2f}\t", end='')
             print(f"MinD: {self.obstacle_distance:<8.2f}Alin: {request.action[LINEAR]:<7.1f}Aturn: {request.action[ANGULAR]:<7.1f}")
+        
+        response.exploration_pct = self.exploration['current']
+        
         return response
 
 def main(args=sys.argv[1:]):
