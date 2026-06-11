@@ -42,6 +42,8 @@ from ..common.settings import ENABLE_BACKWARD, EPISODE_TIMEOUT_SECONDS, ENABLE_M
                                 ARENA_LENGTH, ARENA_WIDTH, LIDAR_DISTANCE_CAP, \
                                 SPEED_LINEAR_MAX, SPEED_ANGULAR_MAX, REAL_TOPIC_SCAN, REAL_TOPIC_VELO, REAL_TOPIC_ODOM
 
+from std_msgs.msg import Float32
+
 # Automatically retrievew from Gazebo model configuration (40 by default).
 # Can be set manually if needed.
 NUM_SCAN_SAMPLES = 500 #500 #util.get_scan_count() Set manually according to settings.py
@@ -91,6 +93,7 @@ class DRLEnvironment(Node):
 
         # publishers
         self.cmd_vel_pub = self.create_publisher(Twist, self.velo_topic, qos)
+        self.exploration_pub = self.create_publisher(Float32, '/drl/exploration_percent', 10)
         # subscribers
         self.goal_pose_sub = self.create_subscription(Pose, self.goal_topic, self.goal_pose_callback, qos)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, qos)
@@ -164,7 +167,11 @@ class DRLEnvironment(Node):
         #w = self.processor.width if self.processor.width is not None else 'N/A'
         #h = self.processor.height if self.processor.height is not None else 'N/A'
 
-        
+        # --- AÑADE ESTO ---
+        pct_msg = Float32()
+        pct_msg.data = float(100.0 - self.processor.unknown_percent_gem)
+        self.exploration_pub.publish(pct_msg)
+        # ------------------
 
         """self.get_logger().info(
             f'Map updated: known%={known_pct:.1f} '
@@ -266,9 +273,13 @@ class DRLEnvironment(Node):
     def scan_callback(self, msg):
         if len(msg.ranges) != NUM_SCAN_SAMPLES:
             print(f"more or less scans than expected! check model.sdf, got: {len(msg.ranges)}, expected: {NUM_SCAN_SAMPLES}")
-        #print("SCAN OUT: ",self.scan_ranges[:10])
-        #print("MSG OUT: ",msg.ranges[:10])
-        #print("OBSTACLE DISTANCE: ", self.obstacle_distance)
+        # normalize laser values
+        self.obstacle_distance = 1
+        for i in range(NUM_SCAN_SAMPLES):
+                self.scan_ranges[i] = numpy.clip(float(msg.ranges[i]) / LIDAR_DISTANCE_CAP, 0, 1)
+                if self.scan_ranges[i] < self.obstacle_distance: 
+                    self.obstacle_distance = self.scan_ranges[i] 
+        self.obstacle_distance *= LIDAR_DISTANCE_CAP
 	
     # Stop the robot and reset the environment. Not sure if this is working properly.
     def stop_reset_robot(self, success):
