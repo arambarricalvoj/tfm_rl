@@ -1,16 +1,31 @@
-crear_graficas/ddpg_0_stage_9/stage9_latest_buffer.pkl
-turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/6baae9c2eba5/ddpg_0_stage_9/stage9_latest_buffer.pkl
-/home/javierac/Documents/ucm/TFM-PFM/tfm_rl/turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/6baae9c2eba5/ddpg_0_stage_9/stage9_latest_buffer.pkl
-turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/b358888874e2/dqn_0_stage_9/stage9_latest_buffer.pkl
-/home/javierac/Documents/ucm/TFM-PFM/tfm_rl/turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/b358888874e2/dqn_0_stage_9/stage9_latest_buffer.pkl
-create3_sim_JavAram/create3_ws/build/*
-create3_sim_JavAram/create3_ws/install/*
-create3_sim_JavAram/create3_ws/log/*
-turtlebot3_drlnav_JavAram/build/*
-turtlebot3_drlnav_JavAram/install/*
-turtlebot3_drlnav_JavAram/log/*
-map_proc_ws/build/*
-map_proc_ws/install/*
-map_proc_ws/log/*
+# ROS2/colcon workspaces
+**/build/
+**/install/
+**/log/
+
+# Modelos y checkpoints
 *.pt
 *.pkl
+
+*.mp4
+
+# PROVISIONAL
+doc/articulo-poster-jjaa26/
+doc/memoria/
+
+#crear_graficas/ddpg_0_stage_9/stage9_latest_buffer.pkl
+#turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/6baae9c2eba5/ddpg_0_stage_9/stage9_latest_buffer.pkl
+#/home/javierac/Documents/ucm/TFM-PFM/tfm_rl/turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/6baae9c2eba5/ddpg_0_stage_9/stage9_latest_buffer.pkl
+#turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/b358888874e2/dqn_0_stage_9/stage9_latest_buffer.pkl
+#/home/javierac/Documents/ucm/TFM-PFM/tfm_rl/turtlebot3_drlnav_JavAram/src/turtlebot3_drl/model/b358888874e2/dqn_0_stage_9/stage9_latest_buffer.pkl
+#create3_sim_JavAram/create3_ws/build/*
+#create3_sim_JavAram/create3_ws/install/*
+#create3_sim_JavAram/create3_ws/log/*
+#turtlebot3_drlnav_JavAram/build/*
+#turtlebot3_drlnav_JavAram/install/*
+#turtlebot3_drlnav_JavAram/log/*
+#map_proc_ws/build/*
+#map_proc_ws/install/*
+#map_proc_ws/log/*
+#*.pt
+#*.pkl
