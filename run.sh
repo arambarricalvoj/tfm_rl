@@ -8,6 +8,7 @@ docker run -e DISPLAY=$DISPLAY \
            -v ./create3_sim_JavAram/create3_ws/:/home/$USER/create3_ws/ \
            -v ./turtlebot3_drlnav_JavAram:/home/$USER/turtlebot3_drlnav_ws/ \
            -v ./map_proc_ws:/home/$USER/map_proc_ws/ \
+           -v ./ros2_ws_rpy:/home/$USER/rpy_utils\
            -it \
            --rm \
            --network host \
