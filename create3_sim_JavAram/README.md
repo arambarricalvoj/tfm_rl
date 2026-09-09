@@ -1,15 +1,11 @@
-# README Javi
-
-Se ha creado una imagen Docker para encapsular la aplicación. 
-La imagen se construye situando la terminar en este directorio y ejecutando:
-
-```bash
-docker build -t ucm_tfm:humble .
-```
-# Pasos para ejecutar
+# Comandos de interés para familiarizarse con los paquetes
 
 ```bash
 ros2 launch irobot_create_gazebo_bringup create3_gazebo.launch.py
+```
+
+```bash
+cd /home/$USER/create3_ws/
 ```
 
 ```bash
@@ -33,7 +29,7 @@ Ejecutar en RViz2 con 2D Goal pose...
 --
 
 
-
+<!--
 La imagen construida ya incorpora todas las dependencias (ver el Dockerfile)
 
 Después, ejecutar ``./run.sh`` para arrancar el contenedor con el repositorio ya montado, y dentro del contenedor en ``/home/$USER/create3_ws/``
@@ -163,3 +159,4 @@ Aunque uses namespace:=robot1 y namespace:=robot2, los plugins de Gazebo están 
 javierac@localhost:~/Documents/ucm/TFM-PFM/create3_sim_JavAram/create3_ws$ find . -name gazebo_params.yaml
 ./install/irobot_create_gazebo_bringup/share/irobot_create_gazebo_bringup/config/gazebo_params.yaml
 ./src/irobot_create_gazebo/irobot_create_gazebo_bringup/config/gazebo_params.yaml
+-->

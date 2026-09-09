@@ -1,5 +1,5 @@
 # map_processing_utils.py
-
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -79,6 +79,16 @@ class MapProcessor:
         self._fig = None
         self._axs = None
         self._im_list = [None, None, None]
+
+        ### NUEVO ###
+        self.robot_path = []   # lista de (row, col)
+        self.start_cell = None
+        self.goal_cell = None
+        self.final_cell = None
+        self._path_artist = None
+        self._start_artist = None
+        self._final_artist = None
+        ### FIN NUEVO ###
 
     # ------------------------------------------------------------------
     #   ACTUALIZACIÓN DESDE ROS
@@ -228,23 +238,6 @@ class MapProcessor:
         # downsample NN a 24×24
         lem = np.zeros((H, W), dtype=np.uint8)
 
-        """for i in range(H):
-            # nearest neighbor
-            src_r = int(round((i + 0.5) * H_big / H - 0.5))
-            src_r = min(max(src_r, 0), H_big - 1)
-
-            for j in range(W):
-                src_c = int(round((j + 0.5) * W_big / W - 0.5))
-                src_c = min(max(src_c, 0), W_big - 1)
-
-                v = canvas_big[src_r, src_c]
-                if v == FREE:
-                    lem[i, j] = 0
-                elif v == UNKNOWN:
-                    lem[i, j] = 128
-                elif v == OCCUPIED:
-                    lem[i, j] = 255"""
-        
         for i in range(H):
             for j in range(W):
                 r0 = int(i * H_big / H)
@@ -263,7 +256,6 @@ class MapProcessor:
                     lem[i, j] = 0
                 else:
                     lem[i, j] = 128
-
 
         self.lem_map = lem
         return lem
@@ -353,6 +345,14 @@ class MapProcessor:
         yaw = self._quat_to_yaw(ori)
         self.robot_pose = (pos.x, pos.y, yaw)
 
+        ### NUEVO: registrar trayectoria ###
+        rc = self.get_robot_cell()
+        if rc is not None:
+            if self.start_cell is None:
+                self.start_cell = rc  # primera posición
+            self.robot_path.append(rc)
+        ### FIN NUEVO ###
+
     def get_robot_cell(self):
         if self.map_data is None or self.origin is None:
             return None
@@ -403,6 +403,34 @@ class MapProcessor:
         else:
             self._im_list[0].set_data(self.map_data)
 
+        ### NUEVO: trayectoria + inicio + fin ###
+        if self._path_artist is not None:
+            self._path_artist.remove()
+            self._path_artist = None
+
+        if self._start_artist is not None:
+            self._start_artist.remove()
+            self._start_artist = None
+
+        if self._final_artist is not None:
+            self._final_artist.remove()
+            self._final_artist = None
+
+        ### NUEVO: dibujar trayectoria ###
+        if len(self.robot_path) > 1:
+            rows = [p[0] for p in self.robot_path]
+            cols = [p[1] for p in self.robot_path]
+            self._path_artist, = ax0.plot(cols, rows, color='red', linewidth=2)
+
+        ### NUEVO: inicio ###
+        if self.start_cell is not None:
+            self._start_artist = ax0.scatter(self.start_cell[1], self.start_cell[0], c='blue', s=50)
+
+        ### NUEVO: final ###
+        if self.final_cell is not None:
+            self._final_artist = ax0.scatter(self.final_cell[1], self.final_cell[0], c='yellow', s=50)
+        ### FIN NUEVO ###
+
         # panel 1
         lem = self.lem_map
         if lem is not None:
@@ -435,6 +463,94 @@ class MapProcessor:
         bounds = [-1.5, -0.5, 0.5, 150]
         norm = mcolors.BoundaryNorm(bounds, cmap.N)
         return cmap, norm
+
+    # ------------------------------------------------------------------
+    #   NUEVA GUI INDEPENDIENTE: MAPA + TRAYECTORIA
+    # ------------------------------------------------------------------
+    def show_path_window(self):
+        if self.map_data is None:
+            return
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+        cmap, norm = self._get_global_cmap()
+        ax.imshow(self.map_data, cmap=cmap, norm=norm, origin='lower')
+
+        # trayectoria en rojo
+        if len(self.robot_path) > 1:
+            rows = [p[0] for p in self.robot_path]
+            cols = [p[1] for p in self.robot_path]
+            ax.plot(cols, rows, color='red', linewidth=2)
+
+        # inicio en azul
+        if self.start_cell is not None:
+            ax.scatter(self.start_cell[1], self.start_cell[0], c='blue', s=60, label='Inicio')
+
+        # fin en verde
+        #if self.robot_path:
+        #    last = self.robot_path[-1]
+        #    ax.scatter(last[1], last[0], c='green', s=60, label='Fin')
+        if self.final_cell is not None:
+            ax0.scatter(self.final_cell[1], self.final_cell[0], c='green', s=50)
+
+
+        ax.set_title("Trayectoria del robot sobre el mapa global")
+        ax.axis('off')
+        ax.legend(loc='upper right')
+        plt.show()
+
+    def set_final_cell(self):
+        """Marca la última celda de la trayectoria como punto final."""
+        if self.robot_path:
+            self.final_cell = self.robot_path[-1]
+
+    def reset_path(self):
+        """Resetea trayectoria, inicio y fin."""
+        self.robot_path = []
+        self.start_cell = None
+        self.final_cell = None
+
+    def save_map_png(self, filename):
+        """
+        Guarda el mapa global con trayectoria en un archivo PNG.
+        Si el archivo ya existe, añade un sufijo incremental automáticamente.
+        """
+        if self.map_data is None:
+            return
+
+        # --- generar nombre alternativo si ya existe ---
+        base, ext = os.path.splitext(filename)
+        final_name = filename
+        counter = 1
+
+        while os.path.exists(final_name):
+            final_name = f"{base}_{counter}{ext}"
+            counter += 1
+
+        # --- generar figura ---
+        fig, ax = plt.subplots(figsize=(6, 6))
+        cmap, norm = self._get_global_cmap()
+        ax.imshow(self.map_data, cmap=cmap, norm=norm, origin='lower')
+
+        # trayectoria
+        if len(self.robot_path) > 1:
+            rows = [p[0] for p in self.robot_path]
+            cols = [p[1] for p in self.robot_path]
+            ax.plot(cols, rows, color='red', linewidth=2)
+
+        # inicio
+        if self.start_cell is not None:
+            ax.scatter(self.start_cell[1], self.start_cell[0], c='blue', s=60)
+
+        # final (solo si tú lo marcas)
+        if self.final_cell is not None:
+            ax.scatter(self.final_cell[1], self.final_cell[0], c='yellow', s=60)
+
+        ax.axis('off')
+        fig.savefig(final_name, dpi=200, bbox_inches='tight')
+        plt.close(fig)
+
+        print(f"Mapa guardado en: {final_name}")
+
 
     # ------------------------------------------------------------------
     #   UTILIDAD: CUATERNION → YAW

@@ -1,5 +1,5 @@
-# Mobile Robot DRL Navigation
-Forked from: https://github.com/tomasvr/turtlebot3_drlnav
+# Original repository: Mobile Robot DRL Navigation
+Adapted and forked from: https://github.com/tomasvr/turtlebot3_drlnav
 ### A ROS2 framework for DRL autonomous navigation on mobile robots with LiDAR.
 <p float="left">
  <img src="media/simulation.gif" width="400">

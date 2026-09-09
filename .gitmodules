@@ -1,7 +1,0 @@
-#[submodule "create3_sim_JavAram/create3_ws/src/m-explore-ros2"]
-#	path = create3_sim_JavAram/create3_ws/src/m-explore-ros2
-#	url = https://github.com/robo-friends/m-explore-ros2
-#[submodule "slam_toolbox"]
-#	path = slam_toolbox
-#	url = https://github.com/SteveMacenski/slam_toolbox.git
-#	branch = humble_lifecycle

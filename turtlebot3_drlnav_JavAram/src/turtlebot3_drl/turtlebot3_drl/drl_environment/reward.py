@@ -39,43 +39,44 @@ def get_reward_A(succeed, action_linear, action_angular, goal_dist, goal_angle, 
     return float(reward)
 
 def get_reward_explore(succeed, action_linear, action_angular, min_obstacle_dist, exploration, steps):
+    
+    # 1) Control (Quitamos el divisor 1000 y ajustamos coeficientes)
+    # Rango esperado: [0, -0.3] -> Visible para el crítico (SNR adecuada)
+    r_vangular = -0.3 * (action_angular ** 2)
+    r_vlinear = -0.3 * (((0.3 - action_linear) * 10.0) ** 2)
 
-    # [-4, 0] bien 
-    r_vangular = -2.0 * (action_angular ** 2)
-    # [-18, 0] fuerte
-    r_vlinear = -2.0 * (((0.3 - action_linear) * 10.0) ** 2)
-
-    #r_vlinear = -0.2 * ((0.3 - action_linear) ** 2)
-    #r_vangular = -0.1 * (action_angular ** 2)
-
-
-    # [-20, 0] muy fuerte
+    # 2) Obstáculos (Sigue siendo una restricción fuerte)
     if min_obstacle_dist < 0.22:
-        r_obstacle = -20.0
+        r_obstacle = -2.0 # Reducido de -20 para no "aplastar" el gradiente, pero sigue siendo fuerte
     else:
         r_obstacle = 0.0
 
-    # --- 3) Exploración (adaptado del paper) ---
-    rho_prev = 100*float(exploration["previous"])
-    rho_curr = 100*float(exploration["current"])
+    # 3) Exploración (Adaptado)
+    rho_prev = 100 * float(exploration["previous"])
+    rho_curr = 100 * float(exploration["current"])
     delta_sq = (rho_curr - rho_prev)**2
 
     if delta_sq > 0.0:
-        # Paper: clip(10 * (rho_t^2 - rho_{t-1}^2), 0, 1)
-        r_exploration = min(10.0 * delta_sq, 1.0) * 100.0
+        # Peso de 0.5 para que la ganancia de mapa compita con el control
+        r_exploration = min(5.0 * delta_sq, 1.0) * 0.5
     else:
-        # Paper: -0.005 → lo llevamos a tu escala *1000
-        r_exploration = -0.5
+        # Penalización por estancamiento (visible: -0.05)
+        r_exploration = -0.05
 
-    r_time = -1.0 
+    # 4) Tiempo (Eficiencia)
+    # Tras 300 pasos, la suma acumulada será ~ -0.6 (equilibrado con la meta)
+    r_time = -0.002 
 
-    reward = (r_vangular + r_vlinear + r_obstacle + r_exploration + r_time) / 1000.0
+    # --- RECOMPENSA TOTAL (SIN DIVISOR GLOBAL) ---
+    reward = r_vangular + r_vlinear + r_obstacle + r_exploration + r_time
+
+    # 5) Eventos Terminales (Se mantienen como los "faros" del aprendizaje)
     if succeed == SUCCESS:
         reward += 5.0
     elif succeed in (COLLISION_OBSTACLE, COLLISION_WALL, TUMBLE):
-        reward -= 2.0
+        reward -= 5.0 # Consistente con el éxito
     elif succeed == TIMEOUT:
-        reward -= 1.0
+        reward -= 1.0 # Mantenemos la restricción
 
     return float(reward)
 
