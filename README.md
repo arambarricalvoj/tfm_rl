@@ -15,7 +15,11 @@ En el directorio principal encontramos:
 - ``create3_sim_JavAram/``: directorio con los paquetes de ROS2 Humble para ejecutar la simulación del robot iRobot iCreate3 en Gazebo Classic.
 - ``turtlebot3_drlnav_JavAram/``: directorio con los paquetes de ROS2 Humble para ejecutar la arquitectura del agente de aprendizaje por refuerzo, tanto el entrenamiento como la inferencia.
 - ``map_proc_ws/``: directorio con el paquete ROS2 ``map_processor`` que contiene el nodo gestor del proceso de SLAM, responsable de reiniciar el mapa entre episodios.
-- ``doc/``: directorio con la documentación del proyecto, memoria del TFM e imágenes.
+- ``doc/``: directorio con la documentación del proyecto, memoria del TFM, artículo publicado, imágenes y vídeos:
+  - ``memoria-tfm.pdf``: memoria completa del TFM del Máster.
+  - ``articulo-jjaa.pdf``: artículo publicado y presentado en las Jornadas de Automática de 2026, DOI: [https://doi.org/10.17979/ja-cea.2026.47.13735](https://doi.org/10.17979/ja-cea.2026.47.13735).
+  - ``poster-jjaa.pdf``: póster presentado en las Jornadas de Automática de 2026.
+  - ``presentacion-jjaa.pdf``: transparencias de la presentación en las Jornadas de Automática de 2026.
 <br><br>
 
 ## Contacto
